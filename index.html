@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#020702">
+<title>ECTO OS // FIELD EQUIPMENT</title>
+<style>
+:root{--bg:#010401;--deep:#020802;--panel:#041004;--line:#39a943;--text:#b7ffbf;--dim:#6aa56f;--warn:#ffb000;--danger:#ff5555}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:"Courier New",monospace}
+body{overflow:hidden}
+button{font:inherit;color:var(--text);background:var(--deep);border:1px solid var(--line);padding:14px 10px;min-height:52px;letter-spacing:.04em}
+button:active{background:#0b2410;box-shadow:inset 0 0 14px rgba(57,169,67,.2)}
+#boot,#app{width:100%;height:100%}
+#boot{display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto}
+.boot-shell{width:min(720px,100%);border:1px solid var(--line);background:rgba(2,10,3,.96);padding:18px;box-shadow:0 0 30px rgba(57,169,67,.08) inset}
+.mark{height:64px;width:64px;border:1px solid var(--line);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px}
+.brand{text-align:center;font-size:28px;font-weight:bold;letter-spacing:.12em}
+.sub{text-align:center;color:var(--dim);font-size:9px;letter-spacing:.13em;margin-top:5px}
+.bootbox{border:1px solid var(--line);margin-top:14px;padding:10px;min-height:145px}
+.boot-title{font-size:10px;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:7px}
+.bootline{font-size:10px;line-height:1.65}
+.bootline:before{content:"> ";color:var(--line)}
+.progress{height:13px;border:1px solid var(--line);padding:2px;margin-top:12px}
+.progress i{display:block;width:0;height:100%;background:var(--line);transition:width .3s}
+.bootstatus{text-align:center;font-size:10px;letter-spacing:.1em;margin-top:8px;min-height:13px}
+.logo-slot{margin-top:12px;border:1px dashed var(--dim);padding:8px;text-align:center;color:var(--dim);font-size:8px;letter-spacing:.08em}
+.hidden{display:none!important}
+#app{overflow:auto;padding:10px}
+.app-shell{max-width:720px;margin:auto}
+.header{border:1px solid var(--line);padding:11px;margin-bottom:9px}
+.header-main{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.header h1{font-size:17px;margin:0;letter-spacing:.08em}
+.header p{margin:4px 0 0;color:var(--dim);font-size:8px}
+.status{font-size:9px;text-align:right}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.section{border:1px solid var(--line);padding:9px;margin-top:9px;background:var(--panel)}
+.section-title{font-size:9px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px}
+.device{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.panel{border:1px solid var(--line);padding:9px;background:var(--deep)}
+.label{font-size:8px;color:var(--dim)}
+.value{font-size:20px;margin-top:4px}
+.readings{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.barrow{display:grid;grid-template-columns:105px 1fr 38px;gap:6px;align-items:center;margin:8px 0;font-size:8px}
+.bar{height:10px;border:1px solid var(--line);padding:2px}
+.bar i{display:block;height:100%;width:50%;background:var(--line);transition:width .2s}
+.wave{height:130px;width:100%;display:block;border:1px solid var(--line);background:#020702}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.range{width:100%}
+.note{font-size:8px;color:var(--dim);line-height:1.5}
+.alert{color:var(--warn)}
+.ok{color:var(--text)}
+@media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}}
+</style>
+</head>
+<body>
+<section id="boot">
+  <div class="boot-shell">
+    <div class="mark">GB</div>
+    <div class="brand">ECTO OS</div>
+    <div class="sub">FIELD EQUIPMENT TERMINAL</div>
+    <div class="logo-slot">CUSTOM ECTO / GB LOGO SLOT — RESERVED FOR FUTURE LOGO</div>
+    <div class="bootbox">
+      <div class="boot-title">SYSTEM INITIALISATION</div>
+      <div id="bootlog"></div>
+    </div>
+    <div class="progress"><i id="bootfill"></i></div>
+    <div class="bootstatus" id="bootstatus">FIELD COMPUTER INITIALISING...</div>
+  </div>
+</section>
+
+<section id="app" class="hidden">
+<div class="app-shell">
+  <div class="header">
+    <div class="header-main">
+      <div><h1>ECTO OS // FIELD EQUIPMENT</h1><p>LOCAL EQUIPMENT MONITORING TERMINAL</p></div>
+      <div class="status" id="topstatus">SYSTEM READY</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">EQUIPMENT SELECT</div>
+    <div class="menu">
+      <button data-device="pack">PROTON PACK</button>
+      <button data-device="wand">NEUTRONA WAND</button>
+      <button data-device="pke">PKE METRE</button>
+      <button data-device="trap">CONTAINMENT TRAP</button>
+    </div>
+  </div>
+
+  <div class="section" id="packScreen">
+    <div class="section-title">PROTON PACK // DIAGNOSTIC</div>
+    <div class="device">
+      <div class="panel"><div class="label">CONNECTION</div><div class="value" id="conn">DISCONNECTED</div></div>
+      <div class="panel"><div class="label">STATUS</div><div class="value ok" id="packStatus">STANDBY</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">FIELD OUTPUT WAVEFORM</div>
+      <canvas id="wave" class="wave"></canvas>
+    </div>
+
+    <div class="readings">
+      <div class="panel"><div class="label">POWER</div><div class="barrow"><span>OUTPUT</span><span class="bar"><i id="powerBar"></i></span><b id="powerVal">0%</b></div></div>
+      <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>STRENGTH</span><span class="bar"><i id="fieldBar"></i></span><b id="fieldVal">0%</b></div></div>
+      <div class="panel"><div class="label">CONTAINMENT</div><div class="barrow"><span>STABILITY</span><span class="bar"><i id="containBar"></i></span><b id="containVal">0%</b></div></div>
+      <div class="panel"><div class="label">CORE</div><div class="barrow"><span>TEMP</span><span class="bar"><i id="tempBar"></i></span><b id="tempVal">0°C</b></div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">PACK CONTROLS</div>
+      <div class="controls">
+        <button id="connect">CONNECT PACK</button>
+        <button id="disconnect">DISCONNECT PACK</button>
+        <button id="increase">INCREASE OUTPUT</button>
+        <button id="fault">SIMULATE FAULT</button>
+      </div>
+      <p class="note" id="packNote">Pack is offline. Connect equipment to begin simulated monitoring.</p>
+    </div>
+  </div>
+
+  <div class="section hidden" id="otherScreen">
+    <div class="section-title" id="otherTitle">EQUIPMENT</div>
+    <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
+    <div class="section">
+      <div class="section-title">FIELD ACTIVITY WAVEFORM</div>
+      <canvas id="otherWave" class="wave"></canvas>
+    </div>
+    <div class="section">
+      <div class="barrow"><span>FIELD ACTIVITY</span><span class="bar"><i id="otherBar"></i></span><b id="otherVal">0%</b></div>
+      <div class="barrow"><span>SIGNAL STABILITY</span><span class="bar"><i id="otherBar2"></i></span><b id="otherVal2">0%</b></div>
+    </div>
+    <div class="controls">
+      <button id="otherAction">INITIALISE</button>
+      <button id="otherReset">RESET</button>
+    </div>
+    <p class="note" id="otherNote"></p>
+  </div>
+</div>
+</section>
+
+<script>
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function boot(){
+  const lines=["FIELD COMPUTER INITIALISATION","EQUIPMENT BUS","PROTON PACK INTERFACE","NEUTRONA WAND INTERFACE","PKE SENSOR INTERFACE","CONTAINMENT TRAP INTERFACE","DIAGNOSTIC ENGINE"];
+  const box=document.getElementById("bootlog");
+  for(let i=0;i<lines.length;i++){
+    const d=document.createElement("div");d.className="bootline";d.textContent=lines[i]+" ........ OK";box.appendChild(d);
+    document.getElementById("bootfill").style.width=Math.round((i+1)/lines.length*100)+"%";
+    document.getElementById("bootstatus").textContent=i===lines.length-1?"SYSTEMS OPERATIONAL // READY":"INITIALISING // "+Math.round((i+1)/lines.length*100)+"%";
+    await sleep(260+Math.random()*420);
+  }
+  await sleep(300);
+  document.getElementById("boot").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+}
+boot();
+
+let connected=false,output=62,fault=false;
+const $=id=>document.getElementById(id);
+function clamp(v){return Math.max(0,Math.min(100,v))}
+function renderPack(){
+  $("conn").textContent=connected?"CONNECTED":"DISCONNECTED";
+  $("packStatus").textContent=fault?"FIELD FAULT":connected?"NOMINAL":"STANDBY";
+  $("packStatus").className="value "+(fault?"alert":"ok");
+  const power=connected?clamp(output+(Math.random()*4-2)):0;
+  const field=connected?clamp(output-5+(Math.random()*5-2.5)):0;
+  const contain=connected?clamp(96-output*.08+(Math.random()*2-1)):0;
+  const temp=connected?clamp(54+output*.42+(Math.random()*2-1)):0;
+  [["powerBar",power],["fieldBar",field],["containBar",contain],["tempBar",temp]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("powerVal").textContent=Math.round(power)+"%";$("fieldVal").textContent=Math.round(field)+"%";
+  $("containVal").textContent=Math.round(contain)+"%";$("tempVal").textContent=Math.round(temp)+"°C";
+  $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":connected?"Pack telemetry active // simulated readings live.":"Pack is offline. Connect equipment to begin simulated monitoring.";
+}
+$("connect").onclick=()=>{connected=true;fault=false;output=62;renderPack()}
+$("disconnect").onclick=()=>{connected=false;fault=false;renderPack()}
+$("increase").onclick=()=>{if(connected){output=clamp(output+8);renderPack()}}
+$("fault").onclick=()=>{if(connected){fault=true;output=94;renderPack()}}
+setInterval(()=>{if(connected)renderPack()},900);
+
+const cvs=$("wave"),ctx=cvs.getContext("2d");
+const oc=$("otherWave"),octx=oc.getContext("2d");
+let t=0;
+function resize(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;return d}
+function draw(){
+  t+=.08; const d=resize(cvs);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,cvs.clientWidth,cvs.clientHeight);
+  ctx.strokeStyle="#39a943";ctx.beginPath();
+  for(let x=0;x<cvs.clientWidth;x++){const amp=connected?(fault?32:12+output*.18):3;const y=cvs.clientHeight/2+Math.sin(x*.055+t)*amp+Math.sin(x*.014+t*.7)*(amp*.35);x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();
+  const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#39a943";octx.beginPath();
+  for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+const otherNames={wand:"NEUTRONA WAND // DIAGNOSTIC",pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
+let activeOther="wand",ov=45;
+document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
+  const d=b.dataset.device;
+  $("packScreen").classList.toggle("hidden",d!=="pack");
+  $("otherScreen").classList.toggle("hidden",d==="pack");
+  if(d!=="pack"){activeOther=d;$("otherTitle").textContent=otherNames[d];$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
+});
+function renderOther(){
+  $("otherBar").style.width=ov+"%";$("otherBar2").style.width=clamp(100-ov/3)+"%";
+  $("otherVal").textContent=Math.round(ov)+"%";$("otherVal2").textContent=Math.round(clamp(100-ov/3))+"%";
+}
+$("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()}
+$("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()}
+renderPack();
+</script>
+</body>
+</html>
