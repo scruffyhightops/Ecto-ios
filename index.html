@@ -62,6 +62,9 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 
 .event-log{max-height:96px;overflow:hidden;font-family:monospace;font-size:11px;line-height:1.5;padding:8px}
 .event-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+button.disabled:disabled,
+button:disabled.disabled{opacity:.38!important;filter:saturate(.45)!important;cursor:not-allowed}
 </style>
 <style>
 .activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
@@ -129,6 +132,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
         <button id="connect">CONNECT PACK</button>
         <button id="disconnect" class="disabled">DISCONNECT PACK</button>
         <button id="increase">INCREASE OUTPUT</button>
+      <button id="packSelfTest">RUN SELF-TEST</button>
         <button id="decrease">DECREASE OUTPUT</button>
         <button id="fault">SIMULATE FAULT</button>
         <button id="cancelFault" disabled>CANCEL FAULT</button>
@@ -164,6 +168,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
           <button id="wandConnect">CONNECT WAND</button>
           <button id="wandDisconnect" class="disabled">DISCONNECT WAND</button>
           <button id="wandIncrease">INCREASE OUTPUT</button>
+          <button id="wandSelfTest">RUN SELF-TEST</button>
           <button id="wandDecrease">DECREASE OUTPUT</button>
           <button id="wandFault">SIMULATE FAULT</button>
           <button id="wandCancelFault" disabled>CANCEL FAULT</button>
@@ -201,6 +206,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
           <button id="trapDeploy">DEPLOY TRAP</button>
           <button id="trapReset">RESET TRAP</button>
           <button id="trapFault">SIMULATE CONTAINMENT FAULT</button>
+      <button id="trapSelfTest">RUN SELF-TEST</button>
           <button id="trapCancelFault" disabled>CANCEL FAULT</button>
         </div>
         <p class="note" id="trapNote">Trap is closed. Deploy to activate the containment field.</p>
@@ -233,6 +239,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
           <button id="pkeConnect">CONNECT PKE</button>
           <button id="pkeDisconnect" class="disabled">DISCONNECT PKE</button>
           <button id="pkeIncrease">INCREASE OUTPUT</button>
+          <button id="pkeSelfTest">RUN SELF-TEST</button>
           <button id="pkeDecrease">DECREASE OUTPUT</button>
           <button id="pkeFault">SIMULATE FAULT</button>
           <button id="pkeCancelFault" disabled>CANCEL FAULT</button>
@@ -272,10 +279,48 @@ async function boot(){
 }
 boot();
 
+
+const selfTests={pack:false,wand:false,pke:false,trap:false};
+function setSelfTest(device,active){
+  selfTests[device]=active;
+  const ids={pack:"packSelfTest",wand:"wandSelfTest",pke:"pkeSelfTest",trap:"trapSelfTest"};
+  const b=$(ids[device]);
+  if(b){
+    b.disabled=active || (
+      device==="pack" ? !connected :
+      device==="wand" ? !wandConnected :
+      device==="pke" ? !pkeConnected :
+      !trapDeployed
+    );
+    b.classList.toggle("disabled",b.disabled);
+    b.textContent=active?"SELF-TEST RUNNING":"RUN SELF-TEST";
+  }
+}
+function runSelfTest(device, connectedState, finish){
+  if(!connectedState || selfTests[device]) return;
+  setSelfTest(device,true);
+  logEvent(device.toUpperCase()+" SELF-TEST STARTED");
+  let step=0;
+  const steps=["POWER CHECK","SENSOR CHECK","FIELD CHECK","STABILITY CHECK","SELF-TEST COMPLETE"];
+  const timer=setInterval(()=>{
+    if(device==="pack" && !connected || device==="wand" && !wandConnected || device==="pke" && !pkeConnected || device==="trap" && !trapDeployed){
+      clearInterval(timer); setSelfTest(device,false); return;
+    }
+    logEvent(device.toUpperCase()+" // "+steps[step]);
+    step++;
+    if(step>=steps.length){
+      clearInterval(timer);
+      setSelfTest(device,false);
+      finish();
+    }
+  },500);
+}
+
 let connected=false,output=62,fault=false;
 const $=id=>document.getElementById(id);
 function clamp(v){return Math.max(0,Math.min(100,v))}
 function syncPackControls(){
+  setSelfTest("pack",selfTests.pack);
   $("connect").classList.toggle("disabled",connected);
   $("disconnect").classList.toggle("disabled",!connected);
   $("connect").disabled=connected;
@@ -330,6 +375,7 @@ function drawPackWave(){
 
 let wandConnected=false,wandOutput=62,wandFault=false;
 function syncWandControls(){
+  setSelfTest("wand",selfTests.wand);
   $("wandConnect").classList.toggle("disabled",wandConnected);$("wandDisconnect").classList.toggle("disabled",!wandConnected);
   $("wandConnect").disabled=wandConnected;$("wandDisconnect").disabled=!wandConnected;
   $("wandIncrease").disabled=!wandConnected||wandFault;$("wandDecrease").disabled=!wandConnected||wandFault;
@@ -356,6 +402,7 @@ $("wandIncrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wa
 $("wandDecrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput-8);renderWand()}};
 $("wandFault").onclick=()=>{if(wandConnected){wandFault=true;wandOutput=96;renderWand()}};
 $("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;renderWand()}};
+$("wandSelfTest").onclick=()=>runSelfTest("wand",wandConnected,()=>{wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND SELF-TEST PASSED")});
 setInterval(()=>{if(wandConnected)renderWand()},900);
 
 function drawWand(){
@@ -403,6 +450,7 @@ function drawWand(){
 
 let trapDeployed=false,trapFault=false,trapEntity=0,trapCharge=100;
 function syncTrapControls(){
+  setSelfTest("trap",selfTests.trap);
   $("trapDeploy").disabled=trapDeployed;$("trapReset").disabled=!trapDeployed;
   $("trapFault").disabled=!trapDeployed||trapFault;$("trapCancelFault").disabled=!trapDeployed||!trapFault;
   $("trapDeploy").classList.toggle("disabled",trapDeployed);$("trapReset").classList.toggle("disabled",!trapDeployed);
@@ -425,6 +473,7 @@ $("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;tra
 $("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
 $("trapFault").onclick=()=>{if(trapDeployed){trapFault=true;trapEntity=78;renderTrap()}};
 $("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;renderTrap()}};
+$("trapSelfTest").onclick=()=>runSelfTest("trap",trapDeployed,()=>{trapFault=false;renderTrap();logEvent("CONTAINMENT TRAP SELF-TEST PASSED")});
 setInterval(()=>{if(trapDeployed)renderTrap()},850);
 
 function drawTrap(){
@@ -455,6 +504,7 @@ function logEvent(message){
 
 let pkeConnected=false,pkeOutput=58,pkeFault=false;
 function syncPkeControls(){
+  setSelfTest("pke",selfTests.pke);
   $("pkeConnect").classList.toggle("disabled",pkeConnected);
   $("pkeDisconnect").classList.toggle("disabled",!pkeConnected);
   $("pkeConnect").disabled=pkeConnected;
@@ -494,6 +544,8 @@ $("pkeIncrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOut
 $("pkeDecrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput-8);renderPke();logEvent("PKE OUTPUT DECREASED // LEVEL "+pkeOutput+"%")}};
 $("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke();logEvent("SIMULATION FAULT // SENSOR RESPONSE ERRATIC")}};
 $("pkeCancelFault").onclick=()=>{if(pkeConnected&&pkeFault){pkeFault=false;pkeOutput=58;renderPke();logEvent("FAULT CLEARED // SENSOR RESPONSE NOMINAL")}};
+$("pkeSelfTest").onclick=()=>runSelfTest("pke",pkeConnected,()=>{pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE SELF-TEST PASSED")});
+
 setInterval(()=>{if(pkeConnected)renderPke()},900);
 
 function drawPke(){
