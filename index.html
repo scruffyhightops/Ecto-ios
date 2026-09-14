@@ -59,28 +59,6 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 .ok{color:var(--text)}
 @media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}#trapFault{font-size:8px}}
 
-
-/* v1.0 Trap waveform enhancement */
-.trap-wave-wrap{position:relative;overflow:hidden}
-.trap-wave-wrap::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    linear-gradient(rgba(110,255,160,.10) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(110,255,160,.10) 1px,transparent 1px);
-  background-size:18px 18px;
-  mix-blend-mode:screen;
-}
-.trap-wave-wrap::after{
-  content:"FIELD // ENTITY // LIVE";
-  position:absolute;right:7px;top:5px;
-  font-size:8px;letter-spacing:1px;opacity:.55;pointer-events:none;
-}
-.trap-wave-caption{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.8px;margin-top:4px;opacity:.8}
-.trap-wave-legend{display:flex;gap:12px}
-.trap-wave-legend span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
-.trap-wave-legend .field::before{background:#4fa8ff;box-shadow:0 0 6px #4fa8ff}
-.trap-wave-legend .entity::before{background:#ffd34f;box-shadow:0 0 6px #ffd34f}
-
 </style>
 <style>
 .activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
@@ -464,77 +442,6 @@ function renderOther(){
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
 renderWand();renderTrap();renderPack();syncPackControls();
-
-function drawTrapWaveform(){
-  const cvs = document.getElementById("trapWave");
-  if(!cvs) return;
-  const ctx = cvs.getContext("2d");
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(1, cvs.clientWidth), h = Math.max(1, cvs.clientHeight);
-  if(cvs.width !== Math.floor(w*dpr) || cvs.height !== Math.floor(h*dpr)){
-    cvs.width=Math.floor(w*dpr); cvs.height=Math.floor(h*dpr);
-  }
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,w,h);
-
-  const fault = window.trapFault === true;
-  const deployed = window.trapDeployed === true;
-  const containing = window.trapContaining === true;
-  const entity = Number(window.trapEntity || 0);
-  const field = Number(window.trapField || 0);
-  const t = performance.now()/1000;
-
-  const draw = (kind, stroke, glow, width, phase) => {
-    ctx.beginPath();
-    ctx.lineWidth = width;
-    ctx.strokeStyle = stroke;
-    ctx.shadowColor = glow;
-    ctx.shadowBlur = fault ? 9 : 5;
-
-    for(let x=0;x<w;x++){
-      const p=x/w;
-      let y=h/2;
-      if(kind==="field"){
-        const amp = deployed ? 8 + field*.18 : 2.5;
-        y += Math.sin(x*.055+t*1.15+phase)*amp;
-        y += Math.sin(x*.013+t*.65)*amp*.38;
-        if(containing) y += Math.sin(x*.22+t*3.2)*2.5;
-        if(fault) y += Math.sin(x*.18+t*5.2)*12 + (Math.random()-.5)*24;
-      }else{
-        const amp = deployed ? 3 + entity*.24 : 1.5;
-        y += Math.sin(x*.042-t*.8+phase)*amp;
-        y += Math.sin(x*.011+t*1.4)*amp*.5;
-        if(containing) y += Math.sin(x*.16-t*2.4)*entity*.09;
-        if(fault) y += Math.sin(x*.25+t*7.0)*22 + Math.sin(x*.061+t*3.8)*14 + (Math.random()-.5)*38;
-      }
-      // Slight centre burst to make the interaction visually apparent.
-      const burst = Math.exp(-Math.pow((p-.62)/.12,2));
-      if(containing) y += Math.sin(x*.34+t*4.2)*burst*(kind==="field"?3:entity*.12);
-      x ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
-    }
-    ctx.stroke();
-  };
-
-  draw("field", fault ? "#4fa8ff" : "#4fa8ff", "#4fa8ff", 1.7, 0);
-  draw("entity", fault ? "#ffd34f" : "#ffd34f", "#ffd34f", 1.5, 1.9);
-
-  // Bright containment pulse.
-  if(containing && !fault){
-    const px=((t*75)%w);
-    const grad=ctx.createLinearGradient(px-20,0,px+20,0);
-    grad.addColorStop(0,"rgba(79,168,255,0)");
-    grad.addColorStop(.5,"rgba(79,168,255,.75)");
-    grad.addColorStop(1,"rgba(79,168,255,0)");
-    ctx.strokeStyle=grad;
-    ctx.lineWidth=2.4;
-    ctx.beginPath(); ctx.moveTo(px,8); ctx.lineTo(px,h-8); ctx.stroke();
-  }
-  ctx.shadowBlur=0;
-  requestAnimationFrame(drawTrapWaveform);
-}
-
-
-drawTrapWaveform();
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
