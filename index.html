@@ -195,7 +195,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 .connection-card.online{background:var(--line)!important;border-color:var(--line)!important;color:var(--bg)!important;box-shadow:0 0 10px rgba(57,169,67,.22),inset 0 0 8px rgba(255,255,255,.08)!important}
 .connection-card.online .connection-name,.connection-card.online .connection-state{color:var(--bg)!important}
 .connection-card.alert{background:var(--warn)!important;color:var(--bg)!important}.connection-card.alert .connection-name,.connection-card.alert .connection-state{color:var(--bg)!important}
-.console-footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.console-footer button{min-height:38px;padding:7px;font-size:7px}
+.console-footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px;position:relative;z-index:5000;pointer-events:auto}.console-footer button{position:relative;z-index:5001;pointer-events:auto;touch-action:manipulation}.console-footer button{min-height:38px;padding:7px;font-size:7px}
 @media(max-width:430px){.equipment-select-panel{padding:7px!important}.menu{gap:5px!important}.menu button{min-height:50px!important}.connection-overview{padding:6px!important}.connection-grid{gap:4px!important}.connection-card{min-height:40px!important}.system-info-panel{margin-top:5px!important;padding:7px!important}.system-info-grid{gap:5px}.system-info-card{padding:7px;min-height:38px}.system-info-card .label{font-size:6px}.system-info-card .value{font-size:13px}.system-info-card.event-card .value{font-size:7px}.console-footer{gap:5px;margin-top:5px}.console-footer button{min-height:34px;font-size:6px}}
 </style>
 
@@ -911,6 +911,22 @@ bindSystemControl("consoleDeactivateBtn",deactivateSystem);
 bindSystemControl("settingsClose",closeSettings);
 
 </script>
-<script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
+<script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script><script>
+(function(){
+  function get(id){return document.getElementById(id)}
+  function showSettings(){var m=get("settingsModal");if(m){m.classList.remove("hidden");m.style.display="block";m.style.pointerEvents="auto";m.style.zIndex="99999"}}
+  function hideSettings(){var m=get("settingsModal");if(m){m.classList.add("hidden");m.style.display="none"}}
+  function deactivate(){try{sessionStorage.removeItem("ectoActivated")}catch(e){};hideSettings();document.querySelectorAll(".diagnostic-modal").forEach(function(x){x.classList.add("hidden")});var app=get("app"),boot=get("boot"),screen=get("activateScreen");if(app)app.classList.add("hidden");if(boot)boot.classList.add("hidden");if(screen){screen.style.display="flex";screen.style.zIndex="999999"}document.body.classList.add("inactive")}
+  function bind(){
+    var s=get("consoleSettingsBtn"),d=get("consoleDeactivateBtn"),c=get("settingsClose");
+    if(s){s.onclick=showSettings;s.addEventListener("pointerup",showSettings,true);s.addEventListener("touchend",showSettings,true)}
+    if(d){d.onclick=deactivate;d.addEventListener("pointerup",deactivate,true);d.addEventListener("touchend",deactivate,true)}
+    if(c){c.onclick=hideSettings;c.addEventListener("pointerup",hideSettings,true);c.addEventListener("touchend",hideSettings,true)}
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind);else bind();
+  window.addEventListener("load",bind);
+})();
+</script>
+</body>
 <!-- v1.9: larger equipment tiles + robust bottom system controls -->
 </html>
