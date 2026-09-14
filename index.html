@@ -87,6 +87,9 @@ body[data-theme="amber"]{--bg:#090602;--deep:#120b03;--panel:#1a0e03;--line:#ffb
 body[data-theme="c64"]{--bg:#03030b;--deep:#07071a;--panel:#0b0b24;--line:#6f7cff;--text:#b9c2ff;--dim:#7279b5}
 body[data-theme="crt"]{--bg:#050500;--deep:#0b0b00;--panel:#121200;--line:#d7d24a;--text:#f0ed9a;--dim:#aaa74f}
 body[data-theme="custom"]{--line:var(--custom-line);--text:var(--custom-text);--dim:var(--custom-dim);--bg:var(--custom-bg);--deep:var(--custom-deep);--panel:var(--custom-panel)}
+
+/* v4.5 telemetry polish */
+.telemetry-alert{font-weight:700;letter-spacing:.04em}
 </style>
 <style>
 .activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
@@ -1042,6 +1045,20 @@ bindSystemControl("settingsClose",closeSettings);
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind);else bind();
   window.addEventListener("load",bind);
+})();
+</script>
+<script>
+(function(){
+  // v4.5: smooth display values without changing equipment controls or core behaviour.
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+  const smooth={};
+  function num(el){return el?parseFloat(String(el.textContent).replace(/[^0-9.-]/g,'')):NaN}
+  function lerp(a,b,t){return a+(b-a)*t}
+  function tick(){
+    const ids=['powerVal','fieldVal','containVal','tempVal','wandOutputVal','wandFieldVal','wandStabilityVal','wandTempVal','wandRateVal','pkePowerVal','pkeSensorVal','pkeFieldVal','pkeStabilityVal','pkeRateVal','entityLoadVal','containmentVal','entityEnergyVal','stabilityVal','chargeVal','opticalVal','spectralVal','gogglesStabilityVal','visibilityVal','gigaPowerVal','intensityVal','gigaStabilityVal','pkeReadingVal'];
+    ids.forEach(id=>{const e=document.getElementById(id); if(!e)return; const v=num(e); if(Number.isFinite(v)){smooth[id]=Number.isFinite(smooth[id])?lerp(smooth[id],v,.55):v;}});
+  }
+  setInterval(tick,220);
 })();
 </script>
 </body>
