@@ -57,7 +57,7 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 .note{font-size:8px;color:var(--dim);line-height:1.5}
 .alert{color:var(--warn)}
 .ok{color:var(--text)}
-@media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}}
+@media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}#trapFault{font-size:8px}}
 
 </style>
 <style>
@@ -174,6 +174,41 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
       </div>
     </div>
 
+    <div id="trapInterface" class="hidden">
+      <div class="device">
+        <div class="panel"><div class="label">TRAP STATUS</div><div class="value ok" id="trapStatus">STANDBY</div></div>
+        <div class="panel"><div class="label">ENTITY LOAD</div><div class="value" id="trapEntityReadout">0%</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">CONTAINMENT FIELD // BLUE: FIELD  //  YELLOW: ENTITY ENERGY</div>
+        <div class="wave-wrap"><canvas id="trapWave" class="wave"></canvas><div class="wave-caption">LIVE CONTAINMENT TRACE // 2-CHANNEL</div></div>
+      </div>
+
+      <div class="readings">
+        <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>CONTAINMENT</span><span class="bar"><i id="trapFieldBar"></i></span><b id="trapFieldVal">0%</b></div></div>
+        <div class="panel"><div class="label">ENTITY</div><div class="barrow"><span>ENERGY</span><span class="bar"><i id="trapEntityBar"></i></span><b id="trapEntityVal">0%</b></div></div>
+        <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>STABILITY</span><span class="bar"><i id="trapStabilityBar"></i></span><b id="trapStabilityVal">0%</b></div></div>
+        <div class="panel"><div class="label">CHARGE</div><div class="barrow"><span>RESERVE</span><span class="bar"><i id="trapChargeBar"></i></span><b id="trapChargeVal">0%</b></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">TRAP CONTROLS</div>
+        <div class="controls">
+          <button id="trapDeploy">DEPLOY TRAP</button>
+          <button id="trapReset">RESET TRAP</button>
+          <button id="trapFault">SIMULATE CONTAINMENT FAULT</button>
+          <button id="trapCancelFault" disabled>CANCEL FAULT</button>
+        </div>
+        <p class="note" id="trapNote">Trap is closed. Deploy to activate the containment field.</p>
+      </div>
+
+      <div class="device">
+        <div class="panel"><div class="label">CONTAINMENT LOAD</div><div class="value" id="trapLoadReadout">0%</div></div>
+        <div class="panel"><div class="label">FIELD STATE</div><div class="value ok" id="trapFieldReadout">OFFLINE</div></div>
+      </div>
+    </div>
+
     <div id="genericEquipment" class="hidden">
       <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
       <div class="section">
@@ -246,6 +281,7 @@ setInterval(()=>{if(connected)renderPack()},900);
 const cvs=$("wave"),ctx=cvs.getContext("2d");
 const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
 const oc=$("otherWave"),octx=oc.getContext("2d");
+const trapCvs=$("trapWave"),trapCtx=trapCvs.getContext("2d");
 let t=0;
 function resize(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;return d}
 function drawPackWave(){
@@ -336,11 +372,51 @@ function drawWand(){
   }
 }
 
+let trapDeployed=false,trapFault=false,trapEntity=0,trapCharge=100;
+function syncTrapControls(){
+  $("trapDeploy").disabled=trapDeployed;$("trapReset").disabled=!trapDeployed;
+  $("trapFault").disabled=!trapDeployed||trapFault;$("trapCancelFault").disabled=!trapDeployed||!trapFault;
+  $("trapDeploy").classList.toggle("disabled",trapDeployed);$("trapReset").classList.toggle("disabled",!trapDeployed);
+}
+function renderTrap(){
+  const field=trapDeployed?(trapFault?clamp(48+Math.random()*12):clamp(82+trapEntity*.12+Math.random()*4-2)):0;
+  const entity=trapDeployed?(trapFault?clamp(82+Math.random()*14):clamp(trapEntity+Math.random()*5-2)):0;
+  const stability=trapDeployed?(trapFault?clamp(12+Math.random()*16):clamp(99-entity*.42+Math.random()*2-1)):0;
+  if(trapDeployed&&!trapFault){trapEntity=clamp(trapEntity+(.7+Math.random()*1.2));trapCharge=clamp(trapCharge-.18-Math.random()*.12)}
+  if(trapDeployed&&trapFault){trapEntity=clamp(trapEntity+1.5+Math.random()*2);trapCharge=clamp(trapCharge-.7-Math.random()*.5)}
+  [["trapFieldBar",field],["trapEntityBar",entity],["trapStabilityBar",stability],["trapChargeBar",trapDeployed?trapCharge:0]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("trapFieldVal").textContent=Math.round(field)+"%";$("trapEntityVal").textContent=Math.round(entity)+"%";$("trapStabilityVal").textContent=Math.round(stability)+"%";$("trapChargeVal").textContent=Math.round(trapDeployed?trapCharge:0)+"%";
+  $("trapEntityReadout").textContent=Math.round(entity)+"%";$("trapLoadReadout").textContent=Math.round(entity)+"%";
+  $("trapFieldReadout").textContent=trapFault?"UNSTABLE":trapDeployed?"ACTIVE":"OFFLINE";$("trapFieldReadout").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
+  $("trapStatus").textContent=trapFault?"CONTAINMENT FAULT":trapDeployed?"CONTAINING":"STANDBY";$("trapStatus").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
+  $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity energy rising.":"Trap is closed. Deploy to activate the containment field.";
+  syncTrapControls();
+}
+$("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap()};
+$("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap()};
+$("trapFault").onclick=()=>{if(trapDeployed){trapFault=true;trapEntity=78;renderTrap()}};
+$("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;renderTrap()}};
+setInterval(()=>{if(trapDeployed)renderTrap()},850);
+
+function drawTrap(){
+  const d=resize(trapCvs);trapCtx.setTransform(d,0,0,d,0,0);trapCtx.clearRect(0,0,trapCvs.clientWidth,trapCvs.clientHeight);
+  const w=trapCvs.clientWidth,h=trapCvs.clientHeight,mid=h/2;
+  if(trapFault){
+    const channels=[{c:"#55aaff",amp:30,f:.055},{c:"#ffe45c",amp:38,f:.083}];
+    channels.forEach((ch,ci)=>{trapCtx.lineWidth=1.2;trapCtx.strokeStyle=ch.c;trapCtx.shadowBlur=7;trapCtx.shadowColor=ch.c;trapCtx.beginPath();for(let x=0;x<w;x++){const chaos=(Math.random()-.5)*(34+ci*12);const y=mid+Math.sin(x*ch.f+t*(2.2+ci))*ch.amp+Math.sin(x*.18-t*2.7)*16+chaos;x?trapCtx.lineTo(x,y):trapCtx.moveTo(x,y)}trapCtx.stroke()});
+  }else if(trapDeployed){
+    const e=trapEntity/100;
+    const channels=[{c:"#55aaff",amp:9+e*16,f:.045,phase:0},{c:"#ffe45c",amp:3+e*25,f:.074,phase:1.7}];
+    channels.forEach((ch,ci)=>{trapCtx.lineWidth=ci?1.2:1.35;trapCtx.strokeStyle=ch.c;trapCtx.shadowBlur=5;trapCtx.shadowColor=ch.c;trapCtx.beginPath();for(let x=0;x<w;x++){const carrier=Math.sin(x*ch.f+t*(.8+e*.65)+ch.phase)*ch.amp;const harmonic=Math.sin(x*(ch.f*2.7)-t*(.7+ci*.15))*ch.amp*.22;const y=mid+carrier+harmonic;x?trapCtx.lineTo(x,y):trapCtx.moveTo(x,y)}trapCtx.stroke()});
+  }else{trapCtx.lineWidth=1;trapCtx.strokeStyle="#2b6d35";trapCtx.shadowBlur=0;trapCtx.beginPath();for(let x=0;x<w;x++){const y=mid+Math.sin(x*.055+t)*2;x?trapCtx.lineTo(x,y):trapCtx.moveTo(x,y)}trapCtx.stroke()}
+  trapCtx.shadowBlur=0;
+}
+
 function drawOther(){
   const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#55ccff";octx.lineWidth=1.4;octx.shadowBlur=5;octx.shadowColor="#55ccff";octx.beginPath();
   for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();octx.shadowBlur=0;
 }
-function draw(){drawPackWave();drawWand();drawOther();requestAnimationFrame(draw)}
+function draw(){drawPackWave();drawWand();drawTrap();drawOther();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
@@ -351,9 +427,11 @@ document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
   $("packScreen").classList.toggle("hidden",d!=="pack");$("otherScreen").classList.toggle("hidden",d==="pack");
   if(d!=="pack"){
     activeOther=d;$("wandInterface").classList.toggle("hidden",d!=="wand");
-    $("genericEquipment").classList.toggle("hidden",d==="wand");
+    $("trapInterface").classList.toggle("hidden",d!=="trap");
+    $("genericEquipment").classList.toggle("hidden",d==="wand"||d==="trap");
     $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d];
     if(d==="wand") renderWand();
+    else if(d==="trap") renderTrap();
     else {$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
   }
 });
@@ -363,7 +441,7 @@ function renderOther(){
 }
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
-renderWand();renderPack();syncPackControls();
+renderWand();renderTrap();renderPack();syncPackControls();
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
