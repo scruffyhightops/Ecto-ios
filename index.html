@@ -138,6 +138,32 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .custom-colour input{width:65px!important;height:34px!important}
 }
 </style>
+
+<style id="v16-ui-expansion">
+.device-btn{display:flex;align-items:center;justify-content:center;gap:7px}
+.device-icon{font-size:15px;line-height:1;color:var(--dim)}
+.device-btn.selected .device-icon{color:var(--line)}
+.connection-overview{margin-top:7px!important;padding:8px!important}
+.connection-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.connection-card{border:1px solid var(--line);background:var(--deep);padding:7px 8px;display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:center;min-height:38px}
+.connection-icon{font-size:13px;color:var(--dim)}
+.connection-name{font-size:7px;letter-spacing:.08em}
+.connection-state{font-size:6px;color:var(--dim);letter-spacing:.06em}
+.connection-card.connected{box-shadow:inset 0 0 10px rgba(57,169,67,.12);background:#071307}
+.connection-card.connected .connection-icon,.connection-card.connected .connection-state{color:var(--line)}
+.connection-card.alert{border-color:var(--warn)}
+.connection-card.alert .connection-icon,.connection-card.alert .connection-state{color:var(--warn)}
+@media(max-width:430px){
+  .equipment-select-panel{padding:8px!important}
+  .menu button{min-height:48px!important}
+  .device-icon{font-size:13px}
+  .connection-overview{margin-top:6px!important;padding:7px!important}
+  .connection-grid{gap:5px}
+  .connection-card{min-height:39px;padding:6px 7px}
+  .diagnostic-modal .wave{height:94px!important}
+  .diagnostic-modal .section{padding:7px!important}
+}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
@@ -165,13 +191,22 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   </div>
 
   <div class="main-console">
-  <div class="section">
+  <div class="section equipment-select-panel">
     <div class="section-title">EQUIPMENT SELECT</div>
     <div class="menu">
-      <button class="device-btn selected" data-device="pack">PROTON PACK</button>
-      <button class="device-btn" data-device="wand">NEUTRONA WAND</button>
-      <button class="device-btn" data-device="pke">PKE METRE</button>
-      <button class="device-btn" data-device="trap">CONTAINMENT TRAP</button>
+      <button class="device-btn selected" data-device="pack"><span class="device-icon">▣</span><span>PROTON PACK</span></button>
+      <button class="device-btn" data-device="wand"><span class="device-icon">◈</span><span>NEUTRONA WAND</span></button>
+      <button class="device-btn" data-device="pke"><span class="device-icon">⌁</span><span>PKE METRE</span></button>
+      <button class="device-btn" data-device="trap"><span class="device-icon">◇</span><span>CONTAINMENT TRAP</span></button>
+    </div>
+  </div>
+  <div class="section connection-overview">
+    <div class="section-title">EQUIPMENT CONNECTION STATUS</div>
+    <div class="connection-grid">
+      <div class="connection-card" data-status-device="pack"><span class="connection-icon">▣</span><span class="connection-name">PACK</span><span class="connection-state" id="overviewPack">OFFLINE</span></div>
+      <div class="connection-card" data-status-device="wand"><span class="connection-icon">◈</span><span class="connection-name">WAND</span><span class="connection-state" id="overviewWand">OFFLINE</span></div>
+      <div class="connection-card" data-status-device="pke"><span class="connection-icon">⌁</span><span class="connection-name">PKE</span><span class="connection-state" id="overviewPke">OFFLINE</span></div>
+      <div class="connection-card" data-status-device="trap"><span class="connection-icon">◇</span><span class="connection-name">TRAP</span><span class="connection-state" id="overviewTrap">OFFLINE</span></div>
     </div>
   </div>
 
@@ -436,6 +471,7 @@ function renderPack(){
   $("containVal").textContent=Math.round(contain)+"%";$("tempVal").textContent=Math.round(temp)+"°C";
   $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":connected?"Pack telemetry active // simulated readings live.":"Pack is offline. Connect equipment to begin simulated monitoring.";
   syncPackControls();
+  updateConnectionOverview();
 }
 $("connect").onclick=()=>{connected=true;fault=false;output=62;renderPack()}
 $("packSelfTest").onclick=()=>runSelfTest("pack",connected,()=>{fault=false;output=62;renderPack();logEvent("PROTON PACK SELF-TEST PASSED")})
@@ -488,6 +524,7 @@ function renderWand(){
   $("wandTempReadout").textContent=Math.round(temp)+"°C";$("wandRateReadout").textContent=wandConnected?rate.toFixed(1)+" Hz":"0 Hz";
   $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // three-channel stream simulation live.":"Wand is offline. Connect equipment to begin simulated monitoring.";
   syncWandControls();
+  updateConnectionOverview();
 }
 $("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND CONNECTED")};
 $("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand();logEvent("NEUTRONA WAND DISCONNECTED")};
@@ -560,6 +597,7 @@ function renderTrap(){
   $("trapStatus").textContent=trapFault?"CONTAINMENT FAULT":trapDeployed?"CONTAINING":"STANDBY";$("trapStatus").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
   $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity energy rising.":"Trap is closed. Deploy to activate the containment field.";
   syncTrapControls();
+  updateConnectionOverview();
 }
 $("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP DEPLOYED")};
 $("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
@@ -621,6 +659,7 @@ function renderPke(){
   $("pkeStatus").className="value "+(pkeFault?"alert":"ok");
   $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // diagnostic pulse response live.":"PKE is offline. Connect equipment to begin simulated monitoring.";
   syncPkeControls();
+  updateConnectionOverview();
 }
 $("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
 $("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;renderPke();logEvent("PKE DISCONNECTED // SYSTEM STANDBY")};
@@ -661,6 +700,11 @@ requestAnimationFrame(draw);
 
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
 let activeOther="wand",ov=45;
+function updateConnectionOverview(){
+  const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed};
+  const labels={pack:connected?(fault?"FAULT":"CONNECTED"):"OFFLINE",wand:wandConnected?(wandFault?"FAULT":"CONNECTED"):"OFFLINE",pke:pkeConnected?(pkeFault?"FAULT":"CONNECTED"):"OFFLINE",trap:trapDeployed?(trapFault?"FAULT":"CONTAINING"):"OFFLINE"};
+  Object.keys(states).forEach(d=>{const card=document.querySelector(`[data-status-device="${d}"]`),state=$("overview"+d.charAt(0).toUpperCase()+d.slice(1));if(card){card.classList.toggle("connected",!!states[d]);card.classList.toggle("alert",labels[d]==="FAULT")}if(state)state.textContent=labels[d]});
+}
 function openEquipment(d){
   $("packScreen").classList.add("hidden");$("otherScreen").classList.add("hidden");
   if(d==="pack"){ $("packScreen").classList.remove("hidden"); return; }
