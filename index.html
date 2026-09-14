@@ -218,6 +218,10 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .system-info-panel{margin-top:6px!important}
 }
 </style>
+
+<style>
+.precheck-panel{margin-top:5px;padding:7px}.precheck-head{display:flex;align-items:center;justify-content:space-between;gap:7px}.precheck-head .section-title{margin:0}.precheck-btn{min-height:30px;padding:5px 8px;font-size:6px}.precheck-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}.precheck-item{border:1px solid var(--ui-border);padding:5px 6px;display:flex;justify-content:space-between;gap:6px;font-size:6px}.precheck-item .state{font-weight:bold}.precheck-item.ready .state{color:var(--ui-text)}.precheck-item.attention .state{color:#ffe45c}.precheck-item.fault .state{color:#ff6b6b}.precheck-result{margin-top:6px;border:1px solid var(--ui-border);padding:6px;text-align:center;font-size:8px;font-weight:bold}.precheck-result.ready{color:var(--ui-text)}.precheck-result.attention,.precheck-result.not-ready{color:#ffe45c}.precheck-result.fault{color:#ff6b6b}.precheck-note{margin-top:5px;font-size:6px;line-height:1.35}@media(max-width:430px){.precheck-panel{padding:6px}.precheck-grid{gap:3px}.precheck-item{padding:4px;font-size:5.5px}.precheck-btn{min-height:28px;font-size:5.5px}.precheck-result{font-size:7px}}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
@@ -293,6 +297,21 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
     <button class="mode-btn" data-mode="containment">CONTAINMENT</button>
   </div>
   <div id="readinessNote" class="note">System standing by.</div>
+</div>
+
+
+<div class="section precheck-panel">
+  <div class="precheck-head"><div class="section-title">FIELD SYSTEM PRE-CHECK</div><button id="runPrecheck" class="precheck-btn">RUN PRE-CHECK</button></div>
+  <div id="precheckGrid" class="precheck-grid">
+    <div class="precheck-item" data-precheck="pack"><span>PROTON PACK</span><span class="state">--</span></div>
+    <div class="precheck-item" data-precheck="wand"><span>NEUTRONA WAND</span><span class="state">--</span></div>
+    <div class="precheck-item" data-precheck="pke"><span>PKE METRE</span><span class="state">--</span></div>
+    <div class="precheck-item" data-precheck="trap"><span>CONTAINMENT TRAP</span><span class="state">--</span></div>
+    <div class="precheck-item" data-precheck="goggles"><span>ECTO-GOGGLES</span><span class="state">--</span></div>
+    <div class="precheck-item" data-precheck="giga"><span>GIGA-METRE</span><span class="state">--</span></div>
+  </div>
+  <div id="precheckResult" class="precheck-result">PRE-CHECK NOT RUN</div>
+  <div id="precheckNote" class="precheck-note">Run a pre-check to verify the current equipment configuration.</div>
 </div>
 
 <div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
@@ -1126,6 +1145,59 @@ bindSystemControl("settingsClose",closeSettings);
     window.updateSystemSummary=function(){originalSummary();updateFieldControl()};
   }
   updateFieldControl();
+})();
+</script>
+
+<script>
+(function(){
+  const btn=document.getElementById("runPrecheck");
+  const result=document.getElementById("precheckResult");
+  const note=document.getElementById("precheckNote");
+  const requirements={
+    standby:[],
+    diagnostic:[],
+    field:["pack","wand"],
+    containment:["pack","wand","trap"]
+  };
+  function states(){return {pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected}}
+  function faults(){return {pack:fault,wand:wandFault,pke:pkeFault,trap:trapFault,goggles:gogglesFault,giga:gigaFault}}
+  function run(){
+    const st=states(),ft=faults(),required=requirements[window.__ectoFieldMode||"standby"]||[];
+    const items=document.querySelectorAll("[data-precheck]");
+    let hasFault=false,missing=false;
+    items.forEach(item=>{
+      const d=item.dataset.precheck,s=item===null?null:item.querySelector(".state");
+      item.classList.remove("ready","attention","fault");
+      if(ft[d]){item.classList.add("fault");s.textContent="FAULT";hasFault=true}
+      else if(st[d]){item.classList.add("ready");s.textContent="READY"}
+      else if(required.includes(d)){item.classList.add("attention");s.textContent="OFFLINE";missing=true}
+      else{s.textContent="STANDBY"}
+    });
+    result.className="precheck-result";
+    if(hasFault){result.textContent="FIELD SYSTEM // NOT READY";result.classList.add("fault");note.textContent="Fault present. Clear affected equipment before deployment."}
+    else if(missing){result.textContent="FIELD SYSTEM // NOT READY";result.classList.add("not-ready");note.textContent="Required equipment is offline for the selected operating mode."}
+    else{result.textContent="FIELD SYSTEM // READY";result.classList.add("ready");note.textContent="Current equipment configuration satisfies the selected operating mode."}
+    logEvent("FIELD PRE-CHECK // "+(hasFault||missing?"NOT READY":"PASSED"));
+  }
+  window.runFieldPrecheck=run;
+  btn.onclick=run;
+  btn.addEventListener("pointerup",run,true);
+  function sync(){run();}
+  const oldSet=window.setFieldMode;
+  if(typeof oldSet==="function"){}
+  window.addEventListener("ecto-field-mode-changed",sync);
+  if(typeof window.updateFieldControl==="function") window.updateFieldControl();
+})();
+</script>
+<script>
+(function(){
+  const oldModeValue=document.getElementById("fieldModeValue");
+  let last=oldModeValue?oldModeValue.textContent:"STANDBY";
+  setInterval(function(){
+    const now=oldModeValue?oldModeValue.textContent:"STANDBY";
+    if(now!==last){last=now;window.__ectoFieldMode={"STANDBY":"standby","DIAGNOSTIC":"diagnostic","FIELD OPERATION":"field","CONTAINMENT":"containment"}[now]||"standby";window.dispatchEvent(new Event("ecto-field-mode-changed"));}
+  },250);
+  window.__ectoFieldMode="standby";
 })();
 </script>
 </body>
