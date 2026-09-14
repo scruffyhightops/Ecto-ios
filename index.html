@@ -210,17 +210,36 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
     </div>
 
     <div id="genericEquipment" class="hidden">
-      <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
-      <div class="section">
-        <div class="section-title">FIELD ACTIVITY WAVEFORM</div>
-        <div class="wave-wrap"><canvas id="otherWave" class="wave"></canvas><div class="wave-caption">LIVE FIELD TRACE // SIMULATION</div></div>
+      <div class="device">
+        <div class="panel"><div class="label">CONNECTION</div><div class="value" id="pkeConn">DISCONNECTED</div></div>
+        <div class="panel"><div class="label">STATUS</div><div class="value ok" id="pkeStatus">STANDBY</div></div>
       </div>
       <div class="section">
-        <div class="barrow"><span>FIELD ACTIVITY</span><span class="bar"><i id="otherBar"></i></span><b id="otherVal">0%</b></div>
-        <div class="barrow"><span>SIGNAL STABILITY</span><span class="bar"><i id="otherBar2"></i></span><b id="otherVal2">0%</b></div>
+        <div class="section-title">PKE SENSOR TRACE // DIAGNOSTIC RESPONSE</div>
+        <div class="wave-wrap"><canvas id="pkeWave" class="wave"></canvas><div class="wave-caption">LIVE SENSOR TRACE // PULSE ANALYSIS</div></div>
       </div>
-      <div class="controls"><button id="otherAction">INITIALISE</button><button id="otherReset">RESET</button></div>
-      <p class="note" id="otherNote"></p>
+      <div class="readings">
+        <div class="panel"><div class="label">SYSTEM</div><div class="barrow"><span>POWER</span><span class="bar"><i id="pkePowerBar"></i></span><b id="pkePowerVal">0%</b></div></div>
+        <div class="panel"><div class="label">SENSOR</div><div class="barrow"><span>ARRAY HEALTH</span><span class="bar"><i id="pkeSensorBar"></i></span><b id="pkeSensorVal">0%</b></div></div>
+        <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>RESPONSE</span><span class="bar"><i id="pkeResponseBar"></i></span><b id="pkeResponseVal">0%</b></div></div>
+        <div class="panel"><div class="label">SYSTEM</div><div class="barrow"><span>STABILITY</span><span class="bar"><i id="pkeStabilityBar"></i></span><b id="pkeStabilityVal">0%</b></div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">PKE CONTROLS</div>
+        <div class="controls">
+          <button id="pkeConnect">CONNECT PKE</button>
+          <button id="pkeDisconnect" class="disabled">DISCONNECT PKE</button>
+          <button id="pkeIncrease">INCREASE OUTPUT</button>
+          <button id="pkeDecrease">DECREASE OUTPUT</button>
+          <button id="pkeFault">SIMULATE FAULT</button>
+          <button id="pkeCancelFault" disabled>CANCEL FAULT</button>
+        </div>
+        <p class="note" id="pkeNote">PKE is offline. Connect equipment to begin simulated monitoring.</p>
+      </div>
+      <div class="device">
+        <div class="panel"><div class="label">SENSOR RESPONSE</div><div class="value" id="pkeResponseReadout">0%</div></div>
+        <div class="panel"><div class="label">SCAN RATE</div><div class="value" id="pkeRateReadout">0 Hz</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -282,6 +301,7 @@ const cvs=$("wave"),ctx=cvs.getContext("2d");
 const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
 const oc=$("otherWave"),octx=oc.getContext("2d");
 const trapCvs=$("trapWave"),trapCtx=trapCvs.getContext("2d");
+const pkeCvs=$("pkeWave"),pkeCtx=pkeCvs.getContext("2d");
 let t=0;
 function resize(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;return d}
 function drawPackWave(){
@@ -412,11 +432,74 @@ function drawTrap(){
   trapCtx.shadowBlur=0;
 }
 
+
+let pkeConnected=false,pkeOutput=58,pkeFault=false;
+function syncPkeControls(){
+  $("pkeConnect").classList.toggle("disabled",pkeConnected);
+  $("pkeDisconnect").classList.toggle("disabled",!pkeConnected);
+  $("pkeConnect").disabled=pkeConnected;
+  $("pkeDisconnect").disabled=!pkeConnected;
+  $("pkeIncrease").disabled=!pkeConnected||pkeFault;
+  $("pkeDecrease").disabled=!pkeConnected||pkeFault;
+  $("pkeFault").disabled=!pkeConnected||pkeFault;
+  $("pkeCancelFault").disabled=!pkeConnected||!pkeFault;
+}
+function renderPke(){
+  const power=pkeConnected?clamp(pkeOutput+Math.random()*3-1.5):0;
+  const sensor=pkeConnected?(pkeFault?clamp(34+Math.random()*12):clamp(97-pkeOutput*.05+Math.random()*2-1)):0;
+  const response=pkeConnected?(pkeFault?clamp(88+Math.random()*10):clamp(28+pkeOutput*.48+Math.random()*5-2.5)):0;
+  const stability=pkeConnected?(pkeFault?clamp(10+Math.random()*20):clamp(98-response*.12+Math.random()*2-1)):0;
+  const rate=pkeConnected?(1.8+pkeOutput*.11+Math.random()*.4):0;
+  [["pkePowerBar",power],["pkeSensorBar",sensor],["pkeResponseBar",response],["pkeStabilityBar",stability]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("pkePowerVal").textContent=Math.round(power)+"%";
+  $("pkeSensorVal").textContent=Math.round(sensor)+"%";
+  $("pkeResponseVal").textContent=Math.round(response)+"%";
+  $("pkeStabilityVal").textContent=Math.round(stability)+"%";
+  $("pkeResponseReadout").textContent=Math.round(response)+"%";
+  $("pkeRateReadout").textContent=rate.toFixed(1)+" Hz";
+  $("pkeConn").textContent=pkeConnected?"CONNECTED":"DISCONNECTED";
+  $("pkeStatus").textContent=pkeFault?"SENSOR FAULT":pkeConnected?"NOMINAL":"STANDBY";
+  $("pkeStatus").className="value "+(pkeFault?"alert":"ok");
+  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // diagnostic pulse response live.":"PKE is offline. Connect equipment to begin simulated monitoring.";
+  syncPkeControls();
+}
+$("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;renderPke()};
+$("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;renderPke()};
+$("pkeIncrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput+8);renderPke()}};
+$("pkeDecrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput-8);renderPke()}};
+$("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke()}};
+$("pkeCancelFault").onclick=()=>{if(pkeConnected&&pkeFault){pkeFault=false;pkeOutput=58;renderPke()}};
+setInterval(()=>{if(pkeConnected)renderPke()},900);
+
+function drawPke(){
+  const d=resize(pkeCvs);pkeCtx.setTransform(d,0,0,d,0,0);pkeCtx.clearRect(0,0,pkeCvs.clientWidth,pkeCvs.clientHeight);
+  const w=pkeCvs.clientWidth,h=pkeCvs.clientHeight,mid=h/2;
+  pkeCtx.beginPath();
+  pkeCtx.lineWidth=pkeFault?1.35:1.2;
+  pkeCtx.strokeStyle=pkeFault?"#ff5555":"#55ccff";
+  pkeCtx.shadowBlur=pkeFault?7:5;pkeCtx.shadowColor=pkeFault?"#ff5555":"#55ccff";
+  for(let x=0;x<w;x++){
+    const phase=(x*.085-t*2.0)%(Math.PI*2);
+    const pulse=Math.max(0,Math.sin(phase))**10;
+    let y=mid+(pkeConnected?(pulse*(8+pkeOutput*.25)):1.8*Math.sin(x*.05+t));
+    y+=Math.sin(x*.018+t*.8)*(pkeConnected?2.5:1.2);
+    if(pkeFault)y+=Math.sin(x*.21+t*5.2)*18+(Math.random()-.5)*42;
+    x?pkeCtx.lineTo(x,y):pkeCtx.moveTo(x,y);
+  }
+  pkeCtx.stroke();
+  if(pkeConnected&&!pkeFault){
+    pkeCtx.lineWidth=.65;pkeCtx.strokeStyle="rgba(255,255,255,.55)";pkeCtx.shadowBlur=2;pkeCtx.shadowColor="#fff";pkeCtx.beginPath();
+    for(let x=0;x<w;x++){const y=mid+Math.sin(x*.17-t*3)*(1.5+pkeOutput*.035);x?pkeCtx.lineTo(x,y):pkeCtx.moveTo(x,y)}
+    pkeCtx.stroke();
+  }
+  pkeCtx.shadowBlur=0;
+}
+
 function drawOther(){
   const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#55ccff";octx.lineWidth=1.4;octx.shadowBlur=5;octx.shadowColor="#55ccff";octx.beginPath();
   for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();octx.shadowBlur=0;
 }
-function draw(){drawPackWave();drawWand();drawTrap();drawOther();requestAnimationFrame(draw)}
+function draw(){drawPackWave();drawWand();drawTrap();drawPke();drawOther();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
@@ -428,11 +511,11 @@ document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
   if(d!=="pack"){
     activeOther=d;$("wandInterface").classList.toggle("hidden",d!=="wand");
     $("trapInterface").classList.toggle("hidden",d!=="trap");
-    $("genericEquipment").classList.toggle("hidden",d==="wand"||d==="trap");
+    $("genericEquipment").classList.toggle("hidden",d!=="pke");
     $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d];
     if(d==="wand") renderWand();
     else if(d==="trap") renderTrap();
-    else {$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
+    else if(d==="pke"){renderPke()}
   }
 });
 function renderOther(){
@@ -441,7 +524,7 @@ function renderOther(){
 }
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
-renderWand();renderTrap();renderPack();syncPackControls();
+renderWand();renderTrap();renderPke();renderPack();syncPackControls();syncPkeControls();
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
