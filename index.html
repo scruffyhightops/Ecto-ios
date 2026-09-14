@@ -93,7 +93,52 @@ body[data-theme="custom"]{--line:var(--custom-line);--text:var(--custom-text);--
 .header-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
 .status-group{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
 body.inactive>*:not(.activate-screen){visibility:hidden}
-</style></head>
+</style>
+<style id="v152-ui-fix">
+/* v1.5.2 iPhone compact fixed-screen layout */
+@media (max-width:430px){
+  html,body{overflow:hidden;height:100%;width:100%}
+  #app{height:100dvh!important;min-height:0!important;overflow:hidden!important;padding:5px!important}
+  .app-shell{height:100%!important;min-height:0!important;max-width:430px!important}
+  .header{padding:7px!important;margin-bottom:5px!important}
+  .header-main{gap:5px!important}
+  .header h1{font-size:11px!important;letter-spacing:.05em!important}
+  .header p{font-size:6px!important;margin-top:2px!important}
+  .header-actions{gap:4px!important}
+  .status{font-size:6px!important}
+  .header-actions button{min-height:30px!important;padding:5px 6px!important;font-size:6px!important}
+  .main-console{gap:0!important}
+  .main-console>.section{margin-top:5px!important;padding:7px!important}
+  .section-title{font-size:7px!important;margin-bottom:5px!important}
+  .menu{gap:5px!important}
+  .menu button{min-height:43px!important;padding:7px 5px!important;font-size:7px!important}
+  .console-spacer{display:block!important;flex:1!important;min-height:0!important}
+  .diagnostic-modal,.settings-modal{inset:5px!important;overflow:hidden!important;padding:7px!important}
+  .modal-head{margin-bottom:5px!important}
+  .modal-close{min-height:30px!important;padding:5px 7px!important;font-size:6px!important}
+  .diagnostic-modal .section{margin-top:5px!important;padding:6px!important}
+  .diagnostic-modal .device{gap:5px!important}
+  .diagnostic-modal .panel{padding:6px!important}
+  .diagnostic-modal .label{font-size:6px!important}
+  .diagnostic-modal .value{font-size:13px!important;margin-top:2px!important}
+  .diagnostic-modal .wave{height:82px!important}
+  .diagnostic-modal .readings{gap:5px!important}
+  .diagnostic-modal .barrow{grid-template-columns:55px 1fr 28px!important;gap:4px!important;margin:5px 0!important;font-size:6px!important}
+  .diagnostic-modal .bar{height:7px!important;padding:1px!important}
+  .diagnostic-modal .controls{gap:5px!important}
+  .diagnostic-modal .controls button{min-height:34px!important;padding:5px 4px!important;font-size:6px!important}
+  .diagnostic-modal .note{font-size:6px!important;margin:4px 0 0!important}
+  .diagnostic-modal .event-log{max-height:52px!important;font-size:7px!important;line-height:1.35!important;padding:5px!important}
+  .diagnostic-modal .event-line{font-size:7px!important}
+  .settings-modal{padding:8px!important}
+  .settings-modal .section{margin-top:6px!important;padding:7px!important}
+  .theme-grid{gap:5px!important}
+  .theme-grid button{min-height:34px!important;padding:5px!important;font-size:6px!important}
+  .custom-colour{grid-template-columns:1fr 65px!important;gap:5px!important}
+  .custom-colour input{width:65px!important;height:34px!important}
+}
+</style>
+</head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
   <div class="boot-shell">
@@ -645,12 +690,18 @@ function applyTheme(theme){
   if(theme==="custom"){const hex=localStorage.getItem("ectoCustomColour")||"#39a943"; const h=hex.replace("#",""); const n=parseInt(h,16); const r=n>>16,g=(n>>8)&255,b=n&255; const mix=(v,a)=>Math.round(v*(1-a)); document.body.style.setProperty("--custom-line",hex);document.body.style.setProperty("--custom-text",`rgb(${mix(r,.15)},${mix(g,.15)},${mix(b,.15)})`);document.body.style.setProperty("--custom-dim",`rgb(${mix(r,.45)},${mix(g,.45)},${mix(b,.45)})`);document.body.style.setProperty("--custom-bg",`rgb(${Math.floor(r*.035)},${Math.floor(g*.035)},${Math.floor(b*.035)})`);document.body.style.setProperty("--custom-deep",`rgb(${Math.floor(r*.07)},${Math.floor(g*.07)},${Math.floor(b*.07)})`);document.body.style.setProperty("--custom-panel",`rgb(${Math.floor(r*.11)},${Math.floor(g*.11)},${Math.floor(b*.11)})`)} else document.body.style.cssText=""; localStorage.setItem("ectoTheme",theme);document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));}
 const savedTheme=localStorage.getItem("ectoTheme")||"green";applyTheme(savedTheme);
 const settingsBtnEl=$("settingsBtn"),settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
-if(settingsBtnEl&&settingsModalEl)settingsBtnEl.addEventListener("click",()=>settingsModalEl.classList.remove("hidden"));
-if(settingsCloseEl&&settingsModalEl)settingsCloseEl.addEventListener("click",()=>settingsModalEl.classList.add("hidden"));
-document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);});
-$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
-$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
-const deactivateBtnEl=$("deactivateBtn"); if(deactivateBtnEl)deactivateBtnEl.addEventListener("click",()=>{sessionStorage.removeItem("ectoActivated");location.reload()});
+function openSettings(){if(settingsModalEl)settingsModalEl.classList.remove("hidden");}
+function closeSettings(){if(settingsModalEl)settingsModalEl.classList.add("hidden");}
+if(settingsBtnEl)settingsBtnEl.onclick=openSettings;
+if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
+document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
+if($("customColour"))$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
+if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
+const deactivateBtnEl=$("deactivateBtn");
+function deactivateSystem(){sessionStorage.removeItem("ectoActivated");closeSettings();document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");if(app)app.classList.add("hidden");if(bootEl)bootEl.classList.add("hidden");if(screen){screen.style.display="flex";document.body.classList.add("inactive");}}
+if(deactivateBtnEl)deactivateBtnEl.onclick=deactivateSystem;
+// Delegated fallback keeps the two system controls reliable on touch devices.
+document.addEventListener("click",e=>{const t=e.target.closest("#settingsBtn,#settingsClose,#deactivateBtn");if(!t)return;e.preventDefault();e.stopPropagation();if(t.id==="settingsBtn")openSettings();else if(t.id==="settingsClose")closeSettings();else deactivateSystem();},true);
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
