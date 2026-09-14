@@ -583,6 +583,28 @@ function advanceProgressive(device,active,load,threshold,onFault){
 }
 function progressiveWarning(device){return progressiveStress[device]>=65?Math.round(progressiveStress[device]):0}
 
+// Phase 4.4: shared field activity linking the six systems.
+function fieldActivity(){
+  let a=0;
+  if(connected) a+=output*.34;
+  if(wandConnected) a+=wandOutput*.28;
+  if(pkeConnected) a+=pkeOutput*.10;
+  if(trapDeployed) a+=trapEntity*.18;
+  if(gogglesConnected) a+=gogglesOutput*.07;
+  if(gigaConnected) a+=gigaOutput*.16;
+  if(fault) a+=7;
+  if(wandFault) a+=7;
+  if(pkeFault) a+=6;
+  if(trapFault) a+=9;
+  if(gogglesFault) a+=5;
+  if(gigaFault) a+=6;
+  return clamp(a);
+}
+function fieldActivityLevel(){
+  const a=fieldActivity();
+  return a>=78?"CRITICAL":a>=58?"ELEVATED":a>=25?"ACTIVE":"QUIET";
+}
+
 function renderPack(){
   $("conn").textContent=connected?"CONNECTED":"DISCONNECTED";
   $("packStatus").textContent=fault?"FIELD FAULT":connected?"NOMINAL":"STANDBY";
@@ -590,8 +612,8 @@ function renderPack(){
   const load=connected?output:0;
   const ripple=connected?Math.sin(Date.now()/420)*1.8:0;
   const targetPower=connected?clamp(load+ripple):0;
-  const targetField=connected?clamp(load-4+ripple*.7):0;
-  const targetContain=connected?clamp(98-load*.11-Math.max(0,load-78)*.16):0;
+  const targetField=connected?clamp(load-4+ripple*.7+fieldActivity()*.05):0;
+  const targetContain=connected?clamp(98-load*.11-Math.max(0,load-78)*.16-Math.max(0,fieldActivity()-65)*.08):0;
   const targetTemp=connected?clamp(52+load*.46+Math.max(0,load-72)*.32):0;
   telemetry.pack.power=telemetryValue(telemetry.pack.power,targetPower,.24);
   telemetry.pack.field=telemetryValue(telemetry.pack.field,targetField,.2);
@@ -619,7 +641,7 @@ $("increase").onclick=()=>{if(connected&&!fault){output=clamp(output+8);renderPa
 $("decrease").onclick=()=>{if(connected&&!fault){output=clamp(output-8);renderPack()}}
 $("fault").onclick=()=>{if(connected){fault=true;output=94;renderPack()}}
 $("cancelFault").onclick=()=>{if(connected&&fault){fault=false;output=62;progressiveStress.pack=0;renderPack()}}
-setInterval(()=>{if(connected)renderPack()},900);
+setInterval(()=>{if(connected)renderPack();logFieldLevelChange()},900);
 
 const cvs=$("wave"),ctx=cvs.getContext("2d");
 const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
@@ -655,7 +677,7 @@ function renderWand(){
   $("wandStatus").className="value "+(wandFault?"alert":"ok");
   const thermalLoad=Math.max(0,wandOutput-55);
   const pulse=wandConnected?(Math.sin(Date.now()/180)+1)*1.2:0;
-  const targetField=wandConnected?clamp(wandOutput*.96+pulse):0;
+  const targetField=wandConnected?clamp(wandOutput*.96+pulse+((connected?output:0)*.06)):0;
   const targetStability=wandConnected?clamp(102-wandOutput*.065-thermalLoad*.12):0;
   const targetTemp=wandConnected?clamp(36+wandOutput*.3+thermalLoad*.08):0;
   const targetRate=wandConnected?(1.1+wandOutput*.21+Math.sin(Date.now()/650)*.18):0;
@@ -682,7 +704,7 @@ $("wandDecrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wa
 $("wandFault").onclick=()=>{if(wandConnected){wandFault=true;wandOutput=96;renderWand()}};
 $("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;progressiveStress.wand=0;renderWand()}};
 $("wandSelfTest").onclick=()=>runSelfTest("wand",wandConnected,()=>{wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND SELF-TEST PASSED")});
-setInterval(()=>{if(wandConnected)renderWand()},900);
+setInterval(()=>{if(wandConnected)renderWand();logFieldLevelChange()},900);
 
 function drawWand(){
   const d=resize(wandCvs);wandCtx.setTransform(d,0,0,d,0,0);wandCtx.clearRect(0,0,wandCvs.clientWidth,wandCvs.clientHeight);
@@ -758,7 +780,7 @@ $("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trap
 $("trapFault").onclick=()=>{if(trapDeployed){trapFault=true;trapEntity=78;renderTrap()}};
 $("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;progressiveStress.trap=0;renderTrap()}};
 $("trapSelfTest").onclick=()=>runSelfTest("trap",trapDeployed,()=>{trapFault=false;renderTrap();logEvent("CONTAINMENT TRAP SELF-TEST PASSED")});
-setInterval(()=>{if(trapDeployed)renderTrap()},850);
+setInterval(()=>{if(trapDeployed)renderTrap();logFieldLevelChange()},850);
 
 function drawTrap(){
   const d=resize(trapCvs);trapCtx.setTransform(d,0,0,d,0,0);trapCtx.clearRect(0,0,trapCvs.clientWidth,trapCvs.clientHeight);
@@ -776,6 +798,14 @@ function drawTrap(){
 
 
 
+let lastFieldLevel="QUIET";
+function logFieldLevelChange(){
+  const level=fieldActivityLevel();
+  if(level!==lastFieldLevel){
+    lastFieldLevel=level;
+    if(level!=="QUIET") logEvent("FIELD SYSTEM // ACTIVITY "+level);
+  }
+}
 function logEvent(message){
   const time=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
   const full=time+" // "+message;
@@ -799,7 +829,7 @@ function renderPke(){
   const sweep=Math.sin(Date.now()/360)*4;
   const targetPower=pkeConnected?pkeOutput:0;
   const targetSensor=pkeConnected?clamp(99-pkeOutput*.07+Math.sin(Date.now()/900)*1.5):0;
-  const targetResponse=pkeConnected?clamp(20+pkeOutput*.58+sweep):0;
+  const targetResponse=pkeConnected?clamp(20+pkeOutput*.58+sweep+fieldActivity()*.08):0;
   const targetStability=pkeConnected?clamp(101-targetResponse*.12):0;
   const targetRate=pkeConnected?(1.2+pkeOutput*.13+Math.sin(Date.now()/700)*.12):0;
   telemetry.pke.power=telemetryValue(telemetry.pke.power,targetPower,.24);
@@ -827,7 +857,7 @@ $("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke
 $("pkeCancelFault").onclick=()=>{if(pkeConnected&&pkeFault){pkeFault=false;pkeOutput=58;renderPke();logEvent("FAULT CLEARED // SENSOR RESPONSE NOMINAL")}};
 $("pkeSelfTest").onclick=()=>runSelfTest("pke",pkeConnected,()=>{pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE SELF-TEST PASSED")});
 
-setInterval(()=>{if(pkeConnected)renderPke();if(gogglesConnected||gigaConnected)renderNew()},900);
+setInterval(()=>{if(pkeConnected)renderPke();if(gogglesConnected||gigaConnected)renderNew();logFieldLevelChange()},900);
 
 function drawPke(){
   const d=resize(pkeCvs);pkeCtx.setTransform(d,0,0,d,0,0);pkeCtx.clearRect(0,0,pkeCvs.clientWidth,pkeCvs.clientHeight);
@@ -880,14 +910,14 @@ function renderNew(){
   const phase=Math.sin(Date.now()/800);
   const targets=goggles?[
     clamp(output+phase*2),
-    clamp(output*.88+phase*4),
+    clamp(output*.88+phase*4+fieldActivity()*.06),
     clamp(96-output*.11-Math.max(0,output-70)*.2),
     clamp(58+output*.27+phase*3)
   ]:[
     clamp(output+phase*1.5),
-    clamp(output*.94+8+phase*2),
+    clamp(output*.94+8+phase*2+fieldActivity()*.08),
     clamp(98-output*.10-Math.max(0,output-75)*.16),
-    clamp(output*.82+Math.sin(Date.now()/520)*5)
+    clamp(output*.82+Math.sin(Date.now()/520)*5+fieldActivity()*.12)
   ];
   const names=goggles?["optical","spectral","stability","visibility"]:["power","field","stability","reading"];
   names.forEach((name,i)=>{telemetry[key][name]=telemetryValue(telemetry[key][name],connectedState?targets[i]:0,i===2?.15:.2)});
@@ -928,7 +958,11 @@ function updateSystemSummary(){
   const systems=$('systemsOnlineValue'),active=$('activeUnitsValue'),faultsEl=$('faultsValue'),status=$('systemStatusValue');
   if(systems)systems.textContent=online+" / 6"; if(active){active.textContent=online;active.title=Object.keys(states).filter(k=>states[k]).join(" • ")||"NO EQUIPMENT CONNECTED";}
   if(faultsEl){faultsEl.textContent=faultCount;faultsEl.className="value "+(faultCount?"alert":"ok");}
-  if(status){const testing=Object.values(selfTests).some(Boolean);status.textContent=testing?"SELF-TEST":faultCount?"ATTENTION":online?"SYSTEMS ACTIVE":"READY";status.className="value "+(testing?"ok":faultCount?"alert":"ok");}
+  if(status){
+    const testing=Object.values(selfTests).some(Boolean), activity=fieldActivity();
+    status.textContent=testing?"SELF-TEST":faultCount?"ATTENTION":activity>=78?"FIELD CRITICAL":activity>=58?"FIELD ELEVATED":online?"SYSTEMS ACTIVE":"READY";
+    status.className="value "+(testing?"ok":faultCount||activity>=78?"alert":"ok");
+  }
 }
 function updateConnectionOverview(){
   const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
