@@ -90,6 +90,12 @@ body[data-theme="custom"]{--line:var(--custom-line);--text:var(--custom-text);--
 
 /* v4.5 telemetry polish */
 .telemetry-alert{font-weight:700;letter-spacing:.04em}
+
+.field-control-panel{margin-top:7px!important}
+.mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px}
+.mode-grid button{min-height:42px!important;font-size:7px!important;padding:5px 3px!important}
+.mode-grid button.active{border-color:var(--ui-border);box-shadow:inset 0 0 0 1px var(--ui-border)}
+@media(max-width:430px){.mode-grid{grid-template-columns:repeat(2,1fr)}.mode-grid button{min-height:38px!important}}
 </style>
 <style>
 .activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
@@ -274,7 +280,22 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
     </div>
   </div>
 
-  <div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
+  <div class="section field-control-panel">
+  <div class="section-title">FIELD SYSTEM CONTROL</div>
+  <div class="system-info-grid">
+    <div><div class="label">SYSTEM MODE</div><div id="fieldModeValue" class="value ok">STANDBY</div></div>
+    <div><div class="label">FIELD READINESS</div><div id="fieldReadinessValue" class="value ok">READY</div></div>
+  </div>
+  <div class="mode-grid">
+    <button class="mode-btn active" data-mode="standby">STANDBY</button>
+    <button class="mode-btn" data-mode="diagnostic">DIAGNOSTIC</button>
+    <button class="mode-btn" data-mode="field">FIELD OPERATION</button>
+    <button class="mode-btn" data-mode="containment">CONTAINMENT</button>
+  </div>
+  <div id="readinessNote" class="note">System standing by.</div>
+</div>
+
+<div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
 
   <div class="section diagnostic-modal hidden" id="packScreen">
     <div class="modal-head"><div class="section-title" style="margin:0">PROTON PACK // DIAGNOSTIC</div><button class="modal-close" data-close="packScreen">CLOSE</button></div>
@@ -1059,6 +1080,52 @@ bindSystemControl("settingsClose",closeSettings);
     ids.forEach(id=>{const e=document.getElementById(id); if(!e)return; const v=num(e); if(Number.isFinite(v)){smooth[id]=Number.isFinite(smooth[id])?lerp(smooth[id],v,.55):v;}});
   }
   setInterval(tick,220);
+})();
+</script>
+
+<script>
+(function(){
+  const fieldModes={standby:{label:"STANDBY"},diagnostic:{label:"DIAGNOSTIC"},field:{label:"FIELD OPERATION"},containment:{label:"CONTAINMENT"}};
+  let currentFieldMode="standby";
+  function readinessFor(mode){
+    const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
+    const faults={pack:fault,wand:wandFault,pke:pkeFault,trap:trapFault,goggles:gogglesFault,giga:gigaFault};
+    const faultNames=Object.keys(faults).filter(k=>faults[k]);
+    if(faultNames.length) return {state:"ATTENTION",note:"FAULT PRESENT // "+faultNames.map(k=>k.toUpperCase()).join(", ")};
+    if(mode==="field"){
+      const monitoring=states.pke||states.goggles||states.giga;
+      if(states.pack&&states.wand&&monitoring) return {state:"READY",note:"FIELD OPERATION REQUIREMENTS SATISFIED."};
+      return {state:"NOT READY",note:"FIELD OPERATION REQUIRES PACK + WAND + MONITORING EQUIPMENT."};
+    }
+    if(mode==="containment"){
+      if(states.pack&&states.wand&&states.trap) return {state:"READY",note:"CONTAINMENT REQUIREMENTS SATISFIED."};
+      return {state:"NOT READY",note:"CONTAINMENT REQUIRES PACK + WAND + TRAP."};
+    }
+    return {state:"READY",note:mode==="diagnostic"?"INDIVIDUAL EQUIPMENT DIAGNOSTICS AVAILABLE.":"SYSTEM STANDING BY."};
+  }
+  function updateFieldControl(){
+    const mode=fieldModes[currentFieldMode];
+    const r=readinessFor(currentFieldMode);
+    const m=$("fieldModeValue"),rd=$("fieldReadinessValue"),n=$("readinessNote");
+    if(m)m.textContent=mode.label;
+    if(rd){rd.textContent=r.state;rd.className="value "+((r.state==="READY")?"ok":"alert");}
+    if(n)n.textContent=r.note;
+    document.querySelectorAll(".mode-btn").forEach(b=>b.classList.toggle("active",b.dataset.mode===currentFieldMode));
+  }
+  function setFieldMode(mode){
+    if(!fieldModes[mode])return;
+    const old=currentFieldMode; currentFieldMode=mode; updateFieldControl();
+    if(old!==mode) logEvent("FIELD MODE // "+fieldModes[mode].label);
+  }
+  document.querySelectorAll(".mode-btn").forEach(b=>{
+    b.onclick=()=>setFieldMode(b.dataset.mode);
+    b.addEventListener("pointerup",()=>setFieldMode(b.dataset.mode),true);
+  });
+  const originalSummary=window.updateSystemSummary;
+  if(typeof originalSummary==="function"){
+    window.updateSystemSummary=function(){originalSummary();updateFieldControl()};
+  }
+  updateFieldControl();
 })();
 </script>
 </body>
