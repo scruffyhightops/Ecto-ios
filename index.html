@@ -573,6 +573,16 @@ const telemetry={pack:{power:0,field:0,contain:0,temp:0},wand:{field:0,stability
 function drift(current,target,amount){return current+(target-current)*amount+(Math.random()-.5)*0.7}
 function telemetryValue(current,target,amount=0.18){return clamp(drift(current,target,amount))}
 
+// Phase 4.3: progressive equipment stress.
+const progressiveStress={pack:0,wand:0,pke:0,trap:0,goggles:0,giga:0};
+function advanceProgressive(device,active,load,threshold,onFault){
+  if(!active){progressiveStress[device]=Math.max(0,progressiveStress[device]-3.5);return false}
+  progressiveStress[device]=clamp(progressiveStress[device]+(load>threshold?((load-threshold)*0.105+0.35):-2.4));
+  if(progressiveStress[device]>=100){progressiveStress[device]=100;if(onFault)onFault();return true}
+  return false
+}
+function progressiveWarning(device){return progressiveStress[device]>=65?Math.round(progressiveStress[device]):0}
+
 function renderPack(){
   $("conn").textContent=connected?"CONNECTED":"DISCONNECTED";
   $("packStatus").textContent=fault?"FIELD FAULT":connected?"NOMINAL":"STANDBY";
@@ -588,6 +598,7 @@ function renderPack(){
   telemetry.pack.contain=telemetryValue(telemetry.pack.contain,targetContain,.16);
   telemetry.pack.temp=telemetryValue(telemetry.pack.temp,targetTemp,.12);
   if(!connected) Object.assign(telemetry.pack,{power:0,field:0,contain:0,temp:0});
+  if(!fault && advanceProgressive("pack",connected,output,82,()=>{fault=true;output=94;logEvent("PROTON PACK // PROGRESSIVE FAULT TRIGGERED")})){renderPack();return}
   if(fault){
     telemetry.pack.field=telemetryValue(telemetry.pack.field,92+Math.random()*7,.28);
     telemetry.pack.contain=telemetryValue(telemetry.pack.contain,56+Math.random()*8,.22);
@@ -597,16 +608,17 @@ function renderPack(){
   [["powerBar",vals[0]],["fieldBar",vals[1]],["containBar",vals[2]],["tempBar",vals[3]]].forEach(([id,v])=>$(id).style.width=v+"%");
   $("powerVal").textContent=Math.round(vals[0])+"%";$("fieldVal").textContent=Math.round(vals[1])+"%";
   $("containVal").textContent=Math.round(vals[2])+"%";$("tempVal").textContent=Math.round(vals[3])+"°C";
-  $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":connected?"Pack telemetry active // load, field and thermal response live.":"Pack is offline. Connect equipment to begin simulated monitoring.";
+  const packWarn=progressiveWarning("pack");
+  $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":packWarn?"SYSTEM LOAD HIGH // FAULT RISK "+packWarn+"%":connected?"Pack telemetry active // load, field and thermal response live.":"Pack is offline. Connect equipment to begin simulated monitoring.";
   syncPackControls(); updateConnectionOverview();
 }
-$("connect").onclick=()=>{connected=true;fault=false;output=62;renderPack()}
-$("packSelfTest").onclick=()=>runSelfTest("pack",connected,()=>{fault=false;output=62;renderPack();logEvent("PROTON PACK SELF-TEST PASSED")})
-$("disconnect").onclick=()=>{connected=false;fault=false;renderPack()}
+$("connect").onclick=()=>{connected=true;fault=false;output=62;progressiveStress.pack=0;renderPack()}
+$("packSelfTest").onclick=()=>runSelfTest("pack",connected,()=>{fault=false;output=62;progressiveStress.pack=0;renderPack();logEvent("PROTON PACK SELF-TEST PASSED")})
+$("disconnect").onclick=()=>{connected=false;fault=false;progressiveStress.pack=0;renderPack()}
 $("increase").onclick=()=>{if(connected&&!fault){output=clamp(output+8);renderPack()}}
 $("decrease").onclick=()=>{if(connected&&!fault){output=clamp(output-8);renderPack()}}
 $("fault").onclick=()=>{if(connected){fault=true;output=94;renderPack()}}
-$("cancelFault").onclick=()=>{if(connected&&fault){fault=false;output=62;renderPack()}}
+$("cancelFault").onclick=()=>{if(connected&&fault){fault=false;output=62;progressiveStress.pack=0;renderPack()}}
 setInterval(()=>{if(connected)renderPack()},900);
 
 const cvs=$("wave"),ctx=cvs.getContext("2d");
@@ -652,21 +664,23 @@ function renderWand(){
   telemetry.wand.temp=telemetryValue(telemetry.wand.temp,targetTemp,.12);
   telemetry.wand.rate=drift(telemetry.wand.rate,targetRate,.2);
   if(!wandConnected)Object.assign(telemetry.wand,{field:0,stability:0,temp:0,rate:0});
+  if(!wandFault && advanceProgressive("wand",wandConnected,wandOutput,84,()=>{wandFault=true;wandOutput=96;logEvent("NEUTRONA WAND // PROGRESSIVE FAULT TRIGGERED")})){renderWand();return}
   if(wandFault){telemetry.wand.stability=telemetryValue(telemetry.wand.stability,14+Math.random()*10,.3);telemetry.wand.temp=telemetryValue(telemetry.wand.temp,94+Math.random()*6,.2);telemetry.wand.rate=drift(telemetry.wand.rate,18+Math.random()*4,.3)}
   const vals=[wandConnected?wandOutput:0,telemetry.wand.field,telemetry.wand.stability,telemetry.wand.temp];
   [["wandOutputBar",vals[0]],["wandFieldBar",vals[1]],["wandStabilityBar",vals[2]],["wandTempBar",vals[3]]].forEach(([id,v])=>$(id).style.width=v+"%");
   $("wandOutputVal").textContent=Math.round(vals[0])+"%";$("wandFieldVal").textContent=Math.round(vals[1])+"%";
   $("wandStabilityVal").textContent=Math.round(vals[2])+"%";$("wandTempVal").textContent=Math.round(vals[3])+"°C";
   $("wandTempReadout").textContent=Math.round(vals[3])+"°C";$("wandRateReadout").textContent=wandConnected?telemetry.wand.rate.toFixed(1)+" Hz":"0 Hz";
-  $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // stream rate rises with output demand.":"Wand is offline. Connect equipment to begin simulated monitoring.";
+  const wandWarn=progressiveWarning("wand");
+  $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandWarn?"THERMAL LOAD RISING // FAULT RISK "+wandWarn+"%":wandConnected?"Wand telemetry active // stream rate rises with output demand.":"Wand is offline. Connect equipment to begin simulated monitoring.";
   syncWandControls(); updateConnectionOverview();
 }
-$("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND CONNECTED")};
-$("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand();logEvent("NEUTRONA WAND DISCONNECTED")};
+$("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;progressiveStress.wand=0;renderWand();logEvent("NEUTRONA WAND CONNECTED")};
+$("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;progressiveStress.wand=0;renderWand();logEvent("NEUTRONA WAND DISCONNECTED")};
 $("wandIncrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput+8);renderWand()}};
 $("wandDecrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput-8);renderWand()}};
 $("wandFault").onclick=()=>{if(wandConnected){wandFault=true;wandOutput=96;renderWand()}};
-$("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;renderWand()}};
+$("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;progressiveStress.wand=0;renderWand()}};
 $("wandSelfTest").onclick=()=>runSelfTest("wand",wandConnected,()=>{wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND SELF-TEST PASSED")});
 setInterval(()=>{if(wandConnected)renderWand()},900);
 
@@ -721,6 +735,7 @@ function syncTrapControls(){
 }
 function renderTrap(){
   if(trapDeployed&&!trapFault){trapEntity=clamp(trapEntity+(0.32+Math.random()*.55));trapCharge=clamp(trapCharge-.10-Math.random()*.06)}
+  if(trapDeployed&&!trapFault&&advanceProgressive("trap",true,trapEntity,72,()=>{trapFault=true;logEvent("CONTAINMENT TRAP // PROGRESSIVE FAULT TRIGGERED")})){renderTrap();return}
   if(trapDeployed&&trapFault){trapEntity=clamp(trapEntity+(1.1+Math.random()*1.4));trapCharge=clamp(trapCharge-.55-Math.random()*.35)}
   const fieldCompensation=trapDeployed?Math.max(0,trapEntity-55)*.08:0;
   const targetField=trapDeployed?clamp(76+trapEntity*.19+fieldCompensation):0;
@@ -734,13 +749,14 @@ function renderTrap(){
   $("trapEntityReadout").textContent=Math.round(entity)+"%";$("trapLoadReadout").textContent=Math.round(entity)+"%";
   $("trapFieldReadout").textContent=trapFault?"UNSTABLE":trapDeployed?"ACTIVE":"OFFLINE";$("trapFieldReadout").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
   $("trapStatus").textContent=trapFault?"CONTAINMENT FAULT":trapDeployed?"CONTAINING":"STANDBY";$("trapStatus").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
-  $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity load influencing stability.":"Trap is closed. Deploy to activate the containment field.";
+  const trapWarn=progressiveWarning("trap");
+  $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapWarn?"CONTAINMENT LOAD HIGH // FAULT RISK "+trapWarn+"%":trapDeployed?"Containment field active // entity load influencing stability.":"Trap is closed. Deploy to activate the containment field.";
   syncTrapControls(); updateConnectionOverview();
 }
-$("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP DEPLOYED")};
-$("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
+$("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;progressiveStress.trap=0;renderTrap();logEvent("CONTAINMENT TRAP DEPLOYED")};
+$("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;progressiveStress.trap=0;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
 $("trapFault").onclick=()=>{if(trapDeployed){trapFault=true;trapEntity=78;renderTrap()}};
-$("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;renderTrap()}};
+$("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;progressiveStress.trap=0;renderTrap()}};
 $("trapSelfTest").onclick=()=>runSelfTest("trap",trapDeployed,()=>{trapFault=false;renderTrap();logEvent("CONTAINMENT TRAP SELF-TEST PASSED")});
 setInterval(()=>{if(trapDeployed)renderTrap()},850);
 
@@ -792,17 +808,19 @@ function renderPke(){
   telemetry.pke.stability=telemetryValue(telemetry.pke.stability,targetStability,.16);
   telemetry.pke.rate=drift(telemetry.pke.rate,targetRate,.2);
   if(!pkeConnected)Object.assign(telemetry.pke,{power:0,sensor:0,response:0,stability:0,rate:0});
+  if(!pkeFault && advanceProgressive("pke",pkeConnected,pkeOutput,80,()=>{pkeFault=true;pkeOutput=94;logEvent("PKE METRE // PROGRESSIVE FAULT TRIGGERED")})){renderPke();return}
   if(pkeFault){telemetry.pke.sensor=telemetryValue(telemetry.pke.sensor,34+Math.random()*10,.28);telemetry.pke.response=telemetryValue(telemetry.pke.response,88+Math.random()*10,.25);telemetry.pke.stability=telemetryValue(telemetry.pke.stability,12+Math.random()*8,.3)}
   [["pkePowerBar",telemetry.pke.power],["pkeSensorBar",telemetry.pke.sensor],["pkeResponseBar",telemetry.pke.response],["pkeStabilityBar",telemetry.pke.stability]].forEach(([id,v])=>$(id).style.width=v+"%");
   $("pkePowerVal").textContent=Math.round(telemetry.pke.power)+"%";$("pkeSensorVal").textContent=Math.round(telemetry.pke.sensor)+"%";
   $("pkeResponseVal").textContent=Math.round(telemetry.pke.response)+"%";$("pkeStabilityVal").textContent=Math.round(telemetry.pke.stability)+"%";
   $("pkeResponseReadout").textContent=Math.round(telemetry.pke.response)+"%";$("pkeRateReadout").textContent=pkeConnected?telemetry.pke.rate.toFixed(1)+" Hz":"0 Hz";
   $("pkeConn").textContent=pkeConnected?"CONNECTED":"DISCONNECTED";$("pkeStatus").textContent=pkeFault?"SENSOR FAULT":pkeConnected?"NOMINAL":"STANDBY";$("pkeStatus").className="value "+(pkeFault?"alert":"ok");
-  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // sensor sweep tracking output demand.":"PKE is offline. Connect equipment to begin simulated monitoring.";
+  const pkeWarn=progressiveWarning("pke");
+  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeWarn?"SENSOR LOAD HIGH // FAULT RISK "+pkeWarn+"%":pkeConnected?"PKE telemetry active // sensor sweep tracking output demand.":"PKE is offline. Connect equipment to begin simulated monitoring.";
   syncPkeControls(); updateConnectionOverview();
 }
-$("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
-$("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;renderPke();logEvent("PKE DISCONNECTED // SYSTEM STANDBY")};
+$("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;progressiveStress.pke=0;renderPke();logEvent("PKE CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
+$("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;progressiveStress.pke=0;renderPke();logEvent("PKE DISCONNECTED // SYSTEM STANDBY")};
 $("pkeIncrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput+8);renderPke();logEvent("PKE OUTPUT INCREASED // LEVEL "+pkeOutput+"%")}};
 $("pkeDecrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput-8);renderPke();logEvent("PKE OUTPUT DECREASED // LEVEL "+pkeOutput+"%")}};
 $("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke();logEvent("SIMULATION FAULT // SENSOR RESPONSE ERRATIC")}};
@@ -874,10 +892,12 @@ function renderNew(){
   const names=goggles?["optical","spectral","stability","visibility"]:["power","field","stability","reading"];
   names.forEach((name,i)=>{telemetry[key][name]=telemetryValue(telemetry[key][name],connectedState?targets[i]:0,i===2?.15:.2)});
   if(!connectedState)names.forEach(n=>telemetry[key][n]=0);
+  if(!faultState&&advanceProgressive(key,connectedState,output,82,()=>{if(goggles){gogglesFault=true;gogglesOutput=94}else{gigaFault=true;gigaOutput=96}logEvent((goggles?"ECTO-GOGGLES":"GIGA-METRE")+" // PROGRESSIVE FAULT TRIGGERED")})){renderNew();return}
   if(faultState){telemetry[key].stability=telemetryValue(telemetry[key].stability,14+Math.random()*10,.3);telemetry[key][goggles?"spectral":"reading"]=telemetryValue(telemetry[key][goggles?"spectral":"reading"],91+Math.random()*9,.25)}
   const vals=names.map(n=>telemetry[key][n]);
   vals.forEach((v,i)=>{$("newBar"+(i+1)).style.width=Math.round(v)+"%";$('newVal'+(i+1)).textContent=Math.round(v)+"%"});
-  $("newNote").textContent=faultState?"SIMULATION FAULT // DIAGNOSTIC RESPONSE ERRATIC":connectedState?(goggles?"Goggles telemetry active // optical and spectral response live.":"Giga-Metre telemetry active // field intensity and PKe response live."):"Equipment is offline. Connect equipment to begin simulated monitoring.";
+  const newWarn=progressiveWarning(key);
+  $("newNote").textContent=faultState?"SIMULATION FAULT // DIAGNOSTIC RESPONSE ERRATIC":newWarn?(goggles?"OPTICAL LOAD HIGH // FAULT RISK ":"FIELD LOAD HIGH // FAULT RISK ")+newWarn+"%":connectedState?(goggles?"Goggles telemetry active // optical and spectral response live.":"Giga-Metre telemetry active // field intensity and PKe response live."):"Equipment is offline. Connect equipment to begin simulated monitoring.";
   syncNewControls(); updateConnectionOverview();
 }
 function configureNewDevice(d){
@@ -892,8 +912,8 @@ function configureNewDevice(d){
   $("newRead4Label").textContent=goggles?"FIELD":"PKe"; $("newRead4Name").textContent=goggles?"VISIBILITY":"READING";
   renderNew();
 }
-$("newConnect").onclick=()=>{if(newDevice==="goggles"){gogglesConnected=true;gogglesFault=false;gogglesOutput=54}else{gigaConnected=true;gigaFault=false;gigaOutput=58}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
-$("newDisconnect").onclick=()=>{if(newDevice==="goggles")gogglesConnected=false;else gigaConnected=false;renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" DISCONNECTED // SYSTEM STANDBY")};
+$("newConnect").onclick=()=>{if(newDevice==="goggles"){gogglesConnected=true;gogglesFault=false;gogglesOutput=54;progressiveStress.goggles=0}else{gigaConnected=true;gigaFault=false;gigaOutput=58;progressiveStress.giga=0}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
+$("newDisconnect").onclick=()=>{if(newDevice==="goggles"){gogglesConnected=false;progressiveStress.goggles=0}else{gigaConnected=false;progressiveStress.giga=0}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" DISCONNECTED // SYSTEM STANDBY")};
 $("newIncrease").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&!gogglesFault){gogglesOutput=clamp(gogglesOutput+8)}else if(newDevice==="giga"&&gigaConnected&&!gigaFault){gigaOutput=clamp(gigaOutput+8)}renderNew()};
 $("newDecrease").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&!gogglesFault){gogglesOutput=clamp(gogglesOutput-8)}else if(newDevice==="giga"&&gigaConnected&&!gigaFault){gigaOutput=clamp(gigaOutput-8)}renderNew()};
 $("newFault").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected){gogglesFault=true;gogglesOutput=94}else if(newDevice==="giga"&&gigaConnected){gigaFault=true;gigaOutput=96}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" SIMULATION FAULT")};
