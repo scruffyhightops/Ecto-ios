@@ -162,6 +162,10 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
       </div>
       <p class="note" id="packNote">Pack is offline. Connect equipment to begin simulated monitoring.</p>
     </div>
+    <div class="section">
+      <div class="section-title">SYSTEM EVENT LOG</div>
+      <div class="panel event-log" id="packEventLog"><div class="event-line">SYSTEM READY // AWAITING EQUIPMENT INPUT</div></div>
+    </div>
   </div>
 
   <div class="section diagnostic-modal hidden" id="otherScreen">
@@ -536,13 +540,15 @@ function drawTrap(){
 
 
 function logEvent(message){
-  const log=$("eventLog");
-  if(!log)return;
-  const line=document.createElement("div");
-  line.className="event-line";
-  line.textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})+" // "+message;
-  log.prepend(line);
-  while(log.children.length>5)log.removeChild(log.lastChild);
+  const time=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  [$("eventLog"),$("packEventLog")].forEach(log=>{
+    if(!log)return;
+    const line=document.createElement("div");
+    line.className="event-line";
+    line.textContent=time+" // "+message;
+    log.prepend(line);
+    while(log.children.length>5)log.removeChild(log.lastChild);
+  });
 }
 
 let pkeConnected=false,pkeOutput=58,pkeFault=false;
@@ -638,11 +644,13 @@ function applyTheme(theme){
   document.body.dataset.theme=theme==="green"?"":theme;
   if(theme==="custom"){const hex=localStorage.getItem("ectoCustomColour")||"#39a943"; const h=hex.replace("#",""); const n=parseInt(h,16); const r=n>>16,g=(n>>8)&255,b=n&255; const mix=(v,a)=>Math.round(v*(1-a)); document.body.style.setProperty("--custom-line",hex);document.body.style.setProperty("--custom-text",`rgb(${mix(r,.15)},${mix(g,.15)},${mix(b,.15)})`);document.body.style.setProperty("--custom-dim",`rgb(${mix(r,.45)},${mix(g,.45)},${mix(b,.45)})`);document.body.style.setProperty("--custom-bg",`rgb(${Math.floor(r*.035)},${Math.floor(g*.035)},${Math.floor(b*.035)})`);document.body.style.setProperty("--custom-deep",`rgb(${Math.floor(r*.07)},${Math.floor(g*.07)},${Math.floor(b*.07)})`);document.body.style.setProperty("--custom-panel",`rgb(${Math.floor(r*.11)},${Math.floor(g*.11)},${Math.floor(b*.11)})`)} else document.body.style.cssText=""; localStorage.setItem("ectoTheme",theme);document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));}
 const savedTheme=localStorage.getItem("ectoTheme")||"green";applyTheme(savedTheme);
-$("settingsBtn").onclick=()=>$("settingsModal").classList.remove("hidden");$("settingsClose").onclick=()=>$("settingsModal").classList.add("hidden");
+const settingsBtnEl=$("settingsBtn"),settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
+if(settingsBtnEl&&settingsModalEl)settingsBtnEl.addEventListener("click",()=>settingsModalEl.classList.remove("hidden"));
+if(settingsCloseEl&&settingsModalEl)settingsCloseEl.addEventListener("click",()=>settingsModalEl.classList.add("hidden"));
 document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);});
 $("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
 $("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
-$("deactivateBtn").onclick=()=>{sessionStorage.removeItem("ectoActivated");location.reload()};
+const deactivateBtnEl=$("deactivateBtn"); if(deactivateBtnEl)deactivateBtnEl.addEventListener("click",()=>{sessionStorage.removeItem("ectoActivated");location.reload()});
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
