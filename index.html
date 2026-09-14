@@ -91,7 +91,13 @@ body[data-theme="custom"]{--line:var(--custom-line);--text:var(--custom-text);--
 /* v4.5 telemetry polish */
 .telemetry-alert{font-weight:700;letter-spacing:.04em}
 
-.field-control-panel{margin-top:7px!important}
+.field-control-panel{margin-top:7px!important}.field-control-panel .precheck-btn{width:100%;min-height:34px!important;margin-top:7px;font-size:7px!important;padding:6px 4px!important}
+#precheckModal{max-height:calc(100vh - 20px);overflow:auto}
+#precheckModal .precheck-grid{margin-top:4px}
+#precheckModal .precheck-item{min-height:32px}
+#precheckModal .precheck-result{margin-top:7px}
+#precheckModal .precheck-note{margin-top:5px}
+
 .mode-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px}
 .mode-grid button{min-height:42px!important;font-size:7px!important;padding:5px 3px!important}
 .mode-grid button.active{border-color:var(--ui-border);box-shadow:inset 0 0 0 1px var(--ui-border)}
@@ -300,8 +306,17 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 </div>
 
 
-<div class="section precheck-panel">
-  <div class="precheck-head"><div class="section-title">FIELD SYSTEM PRE-CHECK</div><button id="runPrecheck" class="precheck-btn">RUN PRE-CHECK</button></div>
+<div id="readinessNote" class="note">System standing by.</div>
+  <button id="runPrecheck" class="precheck-btn">RUN FIELD PRE-CHECK</button>
+</div>
+
+<div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
+
+<div class="section diagnostic-modal hidden" id="precheckModal">
+  <div class="modal-head">
+    <div class="section-title" style="margin:0">FIELD SYSTEM PRE-CHECK</div>
+    <button class="modal-close" id="precheckClose">CLOSE</button>
+  </div>
   <div id="precheckGrid" class="precheck-grid">
     <div class="precheck-item" data-precheck="pack"><span>PROTON PACK</span><span class="state">--</span></div>
     <div class="precheck-item" data-precheck="wand"><span>NEUTRONA WAND</span><span class="state">--</span></div>
@@ -313,8 +328,6 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   <div id="precheckResult" class="precheck-result">PRE-CHECK NOT RUN</div>
   <div id="precheckNote" class="precheck-note">Run a pre-check to verify the current equipment configuration.</div>
 </div>
-
-<div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
 
   <div class="section diagnostic-modal hidden" id="packScreen">
     <div class="modal-head"><div class="section-title" style="margin:0">PROTON PACK // DIAGNOSTIC</div><button class="modal-close" data-close="packScreen">CLOSE</button></div>
@@ -1180,8 +1193,35 @@ bindSystemControl("settingsClose",closeSettings);
     logEvent("FIELD PRE-CHECK // "+(hasFault||missing?"NOT READY":"PASSED"));
   }
   window.runFieldPrecheck=run;
-  btn.onclick=run;
-  btn.addEventListener("pointerup",run,true);
+  function openPrecheck(){
+    run();
+    const modal=document.getElementById("precheckModal");
+    if(modal){
+      modal.classList.remove("hidden");
+      modal.style.display="block";
+      modal.style.pointerEvents="auto";
+      modal.style.zIndex="99998";
+    }
+  }
+  function closePrecheck(){
+    const modal=document.getElementById("precheckModal");
+    if(modal){
+      modal.classList.add("hidden");
+      modal.style.display="none";
+    }
+  }
+  if(btn){
+    btn.onclick=openPrecheck;
+    btn.addEventListener("pointerup",openPrecheck,true);
+    btn.addEventListener("touchend",openPrecheck,true);
+  }
+  const close=document.getElementById("precheckClose");
+  if(close){
+    close.onclick=closePrecheck;
+    close.addEventListener("pointerup",closePrecheck,true);
+    close.addEventListener("touchend",closePrecheck,true);
+  }
+  window.closeFieldPrecheck=closePrecheck;
   function sync(){run();}
   const oldSet=window.setFieldMode;
   if(typeof oldSet==="function"){}
