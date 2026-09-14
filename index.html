@@ -58,14 +58,13 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 .alert{color:var(--warn)}
 .ok{color:var(--text)}
 @media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}}
-.header{position:relative}
-.deactivate-float{position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:20;min-height:32px;padding:6px 10px;border:1px solid var(--ui-border);background:#061006;color:var(--ui-text);font:inherit;font-size:10px;letter-spacing:1.5px;opacity:.82}
-.status-group{display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap}
-.deactivate-float{position:static;transform:none;z-index:auto;min-height:32px;padding:6px 10px;border:1px solid var(--line);background:var(--deep);color:var(--text);font:inherit;font-size:9px;letter-spacing:.08em;opacity:.82}
-@media(max-width:430px){.status-group{gap:6px}.deactivate-float{font-size:8px;padding:5px 7px;min-height:30px}}
+
 </style>
 <style>
-.activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}.deactivate-float{position:fixed;right:12px;bottom:12px;z-index:9000;min-height:34px;padding:7px 10px;font-size:10px;letter-spacing:1.5px;opacity:.8}body.inactive>*:not(.activate-screen){visibility:hidden}
+.activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
+.header-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.status-group{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
+body.inactive>*:not(.activate-screen){visibility:hidden}
 </style></head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
@@ -88,7 +87,7 @@ button.disabled{opacity:.28;filter:saturate(.35)}
   <div class="header">
     <div class="header-main">
       <div><h1>ECTO OS // FIELD EQUIPMENT</h1><p>LOCAL EQUIPMENT MONITORING TERMINAL</p></div>
-      <div class="status-group"><div class="status" id="topstatus">SYSTEM READY</div><button id="deactivateBtn" class="deactivate-float" title="Deactivate system">DEACTIVATE</button></div>
+      <div class="status" id="topstatus">SYSTEM READY</div>
     </div>
   </div>
 
@@ -137,20 +136,57 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 
   <div class="section hidden" id="otherScreen">
     <div class="section-title" id="otherTitle">EQUIPMENT</div>
-    <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
-    <div class="section">
-      <div class="section-title">FIELD ACTIVITY WAVEFORM</div>
-      <div class="wave-wrap"><canvas id="otherWave" class="wave"></canvas><div class="wave-caption">LIVE FIELD TRACE // SIMULATION</div></div>
+
+    <div id="wandInterface">
+      <div class="device">
+        <div class="panel"><div class="label">CONNECTION</div><div class="value" id="wandConn">DISCONNECTED</div></div>
+        <div class="panel"><div class="label">STATUS</div><div class="value ok" id="wandStatus">STANDBY</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">PROTON STREAM // BLUE: POWER CORE  //  YELLOW: CYCLOTRON FIELD  //  WHITE: STREAM</div>
+        <div class="wave-wrap"><canvas id="wandWave" class="wave"></canvas><div class="wave-caption">LIVE PROTON STREAM // 3-CHANNEL</div></div>
+      </div>
+
+      <div class="readings">
+        <div class="panel"><div class="label">STREAM</div><div class="barrow"><span>OUTPUT</span><span class="bar"><i id="wandOutputBar"></i></span><b id="wandOutputVal">0%</b></div></div>
+        <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>STRENGTH</span><span class="bar"><i id="wandFieldBar"></i></span><b id="wandFieldVal">0%</b></div></div>
+        <div class="panel"><div class="label">STREAM</div><div class="barrow"><span>STABILITY</span><span class="bar"><i id="wandStabilityBar"></i></span><b id="wandStabilityVal">0%</b></div></div>
+        <div class="panel"><div class="label">CORE</div><div class="barrow"><span>TEMP</span><span class="bar"><i id="wandTempBar"></i></span><b id="wandTempVal">0°C</b></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">WAND CONTROLS</div>
+        <div class="controls">
+          <button id="wandConnect">CONNECT WAND</button>
+          <button id="wandDisconnect" class="disabled">DISCONNECT WAND</button>
+          <button id="wandIncrease">INCREASE OUTPUT</button>
+          <button id="wandDecrease">DECREASE OUTPUT</button>
+          <button id="wandFault">SIMULATE FAULT</button>
+          <button id="wandCancelFault" disabled>CANCEL FAULT</button>
+        </div>
+        <p class="note" id="wandNote">Wand is offline. Connect equipment to begin simulated monitoring.</p>
+      </div>
+
+      <div class="device">
+        <div class="panel"><div class="label">WAND TEMPERATURE</div><div class="value" id="wandTempReadout">0°C</div></div>
+        <div class="panel"><div class="label">FIRING RATE</div><div class="value" id="wandRateReadout">0 Hz</div></div>
+      </div>
     </div>
-    <div class="section">
-      <div class="barrow"><span>FIELD ACTIVITY</span><span class="bar"><i id="otherBar"></i></span><b id="otherVal">0%</b></div>
-      <div class="barrow"><span>SIGNAL STABILITY</span><span class="bar"><i id="otherBar2"></i></span><b id="otherVal2">0%</b></div>
+
+    <div id="genericEquipment" class="hidden">
+      <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
+      <div class="section">
+        <div class="section-title">FIELD ACTIVITY WAVEFORM</div>
+        <div class="wave-wrap"><canvas id="otherWave" class="wave"></canvas><div class="wave-caption">LIVE FIELD TRACE // SIMULATION</div></div>
+      </div>
+      <div class="section">
+        <div class="barrow"><span>FIELD ACTIVITY</span><span class="bar"><i id="otherBar"></i></span><b id="otherVal">0%</b></div>
+        <div class="barrow"><span>SIGNAL STABILITY</span><span class="bar"><i id="otherBar2"></i></span><b id="otherVal2">0%</b></div>
+      </div>
+      <div class="controls"><button id="otherAction">INITIALISE</button><button id="otherReset">RESET</button></div>
+      <p class="note" id="otherNote"></p>
     </div>
-    <div class="controls">
-      <button id="otherAction">INITIALISE</button>
-      <button id="otherReset">RESET</button>
-    </div>
-    <p class="note" id="otherNote"></p>
   </div>
 </div>
 </section>
@@ -208,16 +244,16 @@ $("cancelFault").onclick=()=>{if(connected&&fault){fault=false;output=62;renderP
 setInterval(()=>{if(connected)renderPack()},900);
 
 const cvs=$("wave"),ctx=cvs.getContext("2d");
+const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
 const oc=$("otherWave"),octx=oc.getContext("2d");
 let t=0;
 function resize(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;return d}
-function draw(){
+function drawPackWave(){
   t+=.08; const d=resize(cvs);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,cvs.clientWidth,cvs.clientHeight);
   const mid=cvs.clientHeight/2;
   if(fault){
     ctx.lineWidth=1.6;ctx.strokeStyle="#ff5555";ctx.shadowBlur=6;ctx.shadowColor="#ff5555";ctx.beginPath();
-    for(let x=0;x<cvs.clientWidth;x++){const spike=(Math.random()-.5)*58;const y=mid+Math.sin(x*.18+t*3)*18+Math.sin(x*.047+t*1.8)*12+spike;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}
-    ctx.stroke();ctx.shadowBlur=0;
+    for(let x=0;x<cvs.clientWidth;x++){const spike=(Math.random()-.5)*58;const y=mid+Math.sin(x*.18+t*3)*18+Math.sin(x*.047+t*1.8)*12+spike;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();ctx.shadowBlur=0;
   }else if(connected){
     ctx.lineWidth=1.35;ctx.strokeStyle="#55aaff";ctx.shadowBlur=5;ctx.shadowColor="#39a943";ctx.beginPath();
     for(let x=0;x<cvs.clientWidth;x++){const y=mid+Math.sin(x*.052+t*1.15)*(10+output*.12)+Math.sin(x*.118+t*2.1)*5+Math.sin(x*.017-t*.65)*7+Math.sin(x*.0038+t*.35)*10;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();
@@ -225,29 +261,109 @@ function draw(){
     for(let x=0;x<cvs.clientWidth;x++){const y=mid+Math.sin(x*.031-t*.8)*(6+output*.055)+Math.sin(x*.19+t*1.4)*2.2;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();
   }else{ctx.lineWidth=1.1;ctx.strokeStyle="#2b6d35";ctx.shadowBlur=0;ctx.beginPath();for(let x=0;x<cvs.clientWidth;x++){const y=mid+Math.sin(x*.055+t)*3;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke()}
   ctx.shadowBlur=0;
+}
+
+let wandConnected=false,wandOutput=62,wandFault=false;
+function syncWandControls(){
+  $("wandConnect").classList.toggle("disabled",wandConnected);$("wandDisconnect").classList.toggle("disabled",!wandConnected);
+  $("wandConnect").disabled=wandConnected;$("wandDisconnect").disabled=!wandConnected;
+  $("wandIncrease").disabled=!wandConnected||wandFault;$("wandDecrease").disabled=!wandConnected||wandFault;
+  $("wandFault").disabled=!wandConnected||wandFault;$("wandCancelFault").disabled=!wandConnected||!wandFault;
+}
+function renderWand(){
+  $("wandConn").textContent=wandConnected?"CONNECTED":"DISCONNECTED";
+  $("wandStatus").textContent=wandFault?"STREAM FAULT":wandConnected?"NOMINAL":"STANDBY";
+  $("wandStatus").className="value "+(wandFault?"alert":"ok");
+  const field=wandConnected?clamp(wandOutput+Math.random()*4-2):0;
+  const stability=wandConnected?(wandFault?clamp(18+Math.random()*18):clamp(99-wandOutput*.05+Math.random()*2-1)):0;
+  const temp=wandConnected?clamp(38+wandOutput*.25+Math.random()*2-1):0;
+  const rate=wandConnected?(wandOutput*.18+1+Math.random()*.6):0;
+  [["wandOutputBar",wandConnected?wandOutput:0],["wandFieldBar",field],["wandStabilityBar",stability],["wandTempBar",temp]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("wandOutputVal").textContent=Math.round(wandConnected?wandOutput:0)+"%";$("wandFieldVal").textContent=Math.round(field)+"%";
+  $("wandStabilityVal").textContent=Math.round(stability)+"%";$("wandTempVal").textContent=Math.round(temp)+"°C";
+  $("wandTempReadout").textContent=Math.round(temp)+"°C";$("wandRateReadout").textContent=wandConnected?rate.toFixed(1)+" Hz":"0 Hz";
+  $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // three-channel stream simulation live.":"Wand is offline. Connect equipment to begin simulated monitoring.";
+  syncWandControls();
+}
+$("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand()};
+$("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand()};
+$("wandIncrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput+8);renderWand()}};
+$("wandDecrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput-8);renderWand()}};
+$("wandFault").onclick=()=>{if(wandConnected){wandFault=true;wandOutput=96;renderWand()}};
+$("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;renderWand()}};
+setInterval(()=>{if(wandConnected)renderWand()},900);
+
+function drawWand(){
+  const d=resize(wandCvs);wandCtx.setTransform(d,0,0,d,0,0);wandCtx.clearRect(0,0,wandCvs.clientWidth,wandCvs.clientHeight);
+  const w=wandCvs.clientWidth,h=wandCvs.clientHeight,mid=h/2;
+  if(wandFault){
+    const channels=[
+      {c:"#55aaff",base:1.05,amp:30},
+      {c:"#ffe45c",base:.82,amp:25},
+      {c:"#ffffff",base:1.35,amp:46}
+    ];
+    channels.forEach((ch,ci)=>{
+      wandCtx.lineWidth=ci===2?1.55:1.15;wandCtx.strokeStyle=ch.c;wandCtx.shadowBlur=ci===2?8:5;wandCtx.shadowColor=ch.c;wandCtx.beginPath();
+      for(let x=0;x<w;x++){
+        const chaos=(Math.random()-.5)*(ci===2?55:42);
+        const y=mid+Math.sin(x*.06+t*ch.base+ci)*ch.amp+Math.sin(x*.19-t*1.7)*14+Math.sin(x*.013+t*2.3)*18+chaos;
+        x?wandCtx.lineTo(x,y):wandCtx.moveTo(x,y)
+      }wandCtx.stroke();
+    });
+    wandCtx.shadowBlur=0;
+  }else if(wandConnected){
+    const o=wandOutput/100;
+    const channels=[
+      {c:"#55aaff",freq:.052,amp:9+o*18,phase:0,glow:"#55aaff"},
+      {c:"#ffe45c",freq:.031,amp:5+o*11,phase:1.8,glow:"#ffe45c"},
+      {c:"#ffffff",freq:.085,amp:3+o*22,phase:2.7,glow:"#ffffff"}
+    ];
+    channels.forEach((ch,ci)=>{
+      wandCtx.lineWidth=ci===2?1.45:1.05;wandCtx.strokeStyle=ch.c;wandCtx.shadowBlur=ci===2?7:5;wandCtx.shadowColor=ch.glow;wandCtx.beginPath();
+      for(let x=0;x<w;x++){
+        const carrier=Math.sin(x*ch.freq+t*(1.05+o*.55)+ch.phase)*ch.amp;
+        const harmonic=Math.sin(x*(ch.freq*2.8)-t*(.65+ci*.12))*ch.amp*.28;
+        const ripple=Math.sin(x*.011+t*(.7+ci*.15))*ch.amp*.42;
+        const y=mid+carrier+harmonic+ripple;
+        x?wandCtx.lineTo(x,y):wandCtx.moveTo(x,y)
+      }wandCtx.stroke();
+    });
+    // subtle stream core crossing the three channels
+    wandCtx.lineWidth=.55;wandCtx.strokeStyle="rgba(255,255,255,.65)";wandCtx.shadowBlur=3;wandCtx.shadowColor="#fff";wandCtx.beginPath();
+    for(let x=0;x<w;x++){const y=mid+Math.sin(x*.14+t*2.2)*(2+o*6)+Math.sin(x*.031-t)*3;x?wandCtx.lineTo(x,y):wandCtx.moveTo(x,y)}wandCtx.stroke();wandCtx.shadowBlur=0;
+  }else{
+    wandCtx.lineWidth=1;wandCtx.strokeStyle="#2b6d35";wandCtx.shadowBlur=0;wandCtx.beginPath();for(let x=0;x<w;x++){const y=mid+Math.sin(x*.055+t)*3;x?wandCtx.lineTo(x,y):wandCtx.moveTo(x,y)}wandCtx.stroke();
+  }
+}
+
+function drawOther(){
   const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#55ccff";octx.lineWidth=1.4;octx.shadowBlur=5;octx.shadowColor="#55ccff";octx.beginPath();
   for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();octx.shadowBlur=0;
-  requestAnimationFrame(draw);
 }
+function draw(){drawPackWave();drawWand();drawOther();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
-const otherNames={wand:"NEUTRONA WAND // DIAGNOSTIC",pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
+const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
 let activeOther="wand",ov=45;
 document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("[data-device]").forEach(x=>x.classList.toggle("selected",x===b));
   const d=b.dataset.device;
-  $("packScreen").classList.toggle("hidden",d!=="pack");
-  $("otherScreen").classList.toggle("hidden",d==="pack");
-  if(d!=="pack"){activeOther=d;$("otherTitle").textContent=otherNames[d];$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
+  $("packScreen").classList.toggle("hidden",d!=="pack");$("otherScreen").classList.toggle("hidden",d==="pack");
+  if(d!=="pack"){
+    activeOther=d;$("wandInterface").classList.toggle("hidden",d!=="wand");
+    $("genericEquipment").classList.toggle("hidden",d==="wand");
+    $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d];
+    if(d==="wand") renderWand();
+    else {$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
+  }
 });
 function renderOther(){
   $("otherBar").style.width=ov+"%";$("otherBar2").style.width=clamp(100-ov/3)+"%";
   $("otherVal").textContent=Math.round(ov)+"%";$("otherVal2").textContent=Math.round(clamp(100-ov/3))+"%";
 }
-$("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()}
-$("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()}
-renderPack();
-syncPackControls();
+$("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
+$("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
+renderWand();renderPack();syncPackControls();
 </script>
-<script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn"),d=document.getElementById("deactivateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};d.onclick=()=>{sessionStorage.removeItem("ectoActivated");document.body.classList.add("inactive");screen.style.display="flex"};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
+<script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
