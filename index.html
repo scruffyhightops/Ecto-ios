@@ -182,6 +182,22 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 .connection-card.alert{background:#160b03;border-color:var(--warn)}
 .connection-card.alert .connection-state{color:var(--warn)}
 </style>
+
+<style id="v18-console-redesign">
+.main-console{gap:0!important;min-height:0!important}
+.equipment-select-panel{flex:0 0 auto}
+.connection-overview{flex:0 0 auto}
+.system-info-panel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.system-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;flex:1;min-height:0}
+.system-info-card{border:1px solid var(--line);background:var(--deep);padding:9px;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.system-info-card .label{font-size:7px}.system-info-card .value{font-size:16px;margin-top:4px}
+.system-info-card.event-card{grid-column:1/-1}.system-info-card.event-card .value{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.connection-card.online{background:var(--line)!important;border-color:var(--line)!important;color:var(--bg)!important;box-shadow:0 0 10px rgba(57,169,67,.22),inset 0 0 8px rgba(255,255,255,.08)!important}
+.connection-card.online .connection-name,.connection-card.online .connection-state{color:var(--bg)!important}
+.connection-card.alert{background:var(--warn)!important;color:var(--bg)!important}.connection-card.alert .connection-name,.connection-card.alert .connection-state{color:var(--bg)!important}
+.console-footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.console-footer button{min-height:38px;padding:7px;font-size:7px}
+@media(max-width:430px){.equipment-select-panel{padding:7px!important}.menu{gap:5px!important}.menu button{min-height:50px!important}.connection-overview{padding:6px!important}.connection-grid{gap:4px!important}.connection-card{min-height:40px!important}.system-info-panel{margin-top:5px!important;padding:7px!important}.system-info-grid{gap:5px}.system-info-card{padding:7px;min-height:38px}.system-info-card .label{font-size:6px}.system-info-card .value{font-size:13px}.system-info-card.event-card .value{font-size:7px}.console-footer{gap:5px;margin-top:5px}.console-footer button{min-height:34px;font-size:6px}}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
@@ -231,6 +247,19 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
       <div class="connection-card offline" data-status-device="giga"><span class="connection-name">GIGA-METRE</span><span class="connection-state" id="overviewGiga">OFFLINE</span></div>
     </div>
   </div>
+
+  <div class="section system-info-panel">
+    <div class="section-title">ECTO FIELD SYSTEM // LIVE STATUS</div>
+    <div class="system-info-grid">
+      <div class="system-info-card"><div class="label">SYSTEM STATUS</div><div class="value ok" id="systemStatusValue">READY</div></div>
+      <div class="system-info-card"><div class="label">SYSTEMS ONLINE</div><div class="value" id="systemsOnlineValue">0 / 6</div></div>
+      <div class="system-info-card"><div class="label">ACTIVE EQUIPMENT</div><div class="value" id="activeUnitsValue">0</div></div>
+      <div class="system-info-card"><div class="label">FAULTS DETECTED</div><div class="value ok" id="faultsValue">0</div></div>
+      <div class="system-info-card event-card"><div class="label">LAST SYSTEM EVENT</div><div class="value" id="lastEventValue">SYSTEM READY // AWAITING EQUIPMENT INPUT</div></div>
+    </div>
+  </div>
+
+  <div class="console-footer"><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
 
   <div class="section diagnostic-modal hidden" id="packScreen">
     <div class="modal-head"><div class="section-title" style="margin:0">PROTON PACK // DIAGNOSTIC</div><button class="modal-close" data-close="packScreen">CLOSE</button></div>
@@ -678,14 +707,14 @@ function drawTrap(){
 
 function logEvent(message){
   const time=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
-  [$("eventLog"),$("packEventLog")].forEach(log=>{
+  const full=time+" // "+message;
+  [$('eventLog'),$('packEventLog')].forEach(log=>{
     if(!log)return;
-    const line=document.createElement("div");
-    line.className="event-line";
-    line.textContent=time+" // "+message;
-    log.prepend(line);
+    const line=document.createElement("div"); line.className="event-line"; line.textContent=full; log.prepend(line);
     while(log.children.length>5)log.removeChild(log.lastChild);
   });
+  const last=$('lastEventValue'); if(last)last.textContent=full;
+  updateSystemSummary();
 }
 
 let pkeConnected=false,pkeOutput=58,pkeFault=false;
@@ -798,10 +827,20 @@ $("newCancelFault").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&gog
 $("newSelfTest").onclick=()=>{const state=newDevice==="goggles"?gogglesConnected:gigaConnected;runSelfTest(newDevice,state,()=>{if(newDevice==="goggles"){gogglesFault=false;gogglesOutput=54}else{gigaFault=false;gigaOutput=58}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" SELF-TEST PASSED")})};
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
 let activeOther="wand",ov=45;
+function updateSystemSummary(){
+  const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
+  const faults={pack:fault,wand:wandFault,pke:pkeFault,trap:trapFault,goggles:gogglesFault,giga:gigaFault};
+  const online=Object.values(states).filter(Boolean).length, faultCount=Object.values(faults).filter(Boolean).length;
+  const systems=$('systemsOnlineValue'),active=$('activeUnitsValue'),faultsEl=$('faultsValue'),status=$('systemStatusValue');
+  if(systems)systems.textContent=online+" / 6"; if(active)active.textContent=online;
+  if(faultsEl){faultsEl.textContent=faultCount;faultsEl.className="value "+(faultCount?"alert":"ok");}
+  if(status){status.textContent=faultCount?"ATTENTION":online?"SYSTEMS ACTIVE":"READY";status.className="value "+(faultCount?"alert":"ok");}
+}
 function updateConnectionOverview(){
   const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
   const labels={pack:connected?(fault?"FAULT":"ONLINE"):"OFFLINE",wand:wandConnected?(wandFault?"FAULT":"ONLINE"):"OFFLINE",pke:pkeConnected?(pkeFault?"FAULT":"ONLINE"):"OFFLINE",trap:trapDeployed?(trapFault?"FAULT":"ONLINE"):"OFFLINE",goggles:gogglesConnected?(gogglesFault?"FAULT":"ONLINE"):"OFFLINE",giga:gigaConnected?(gigaFault?"FAULT":"ONLINE"):"OFFLINE"};
   Object.keys(states).forEach(d=>{const card=document.querySelector(`[data-status-device="${d}"]`),state=$("overview"+d.charAt(0).toUpperCase()+d.slice(1));if(card){card.classList.remove("online","offline","alert");card.classList.add(labels[d]==="FAULT"?"alert":states[d]?"online":"offline")}if(state)state.textContent=labels[d]});
+  updateSystemSummary();
 }
 function openEquipment(d){
   $("packScreen").classList.add("hidden");$("otherScreen").classList.add("hidden");
@@ -825,7 +864,7 @@ function renderOther(){
 }
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
-renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();
+renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();updateSystemSummary();
 
 const themeDefaults={green:{},amber:{},c64:{},crt:{}};
 function applyTheme(theme){
@@ -840,6 +879,9 @@ if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
 document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
 if($("customColour"))$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
 if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
+const consoleSettingsBtnEl=$("consoleSettingsBtn"),consoleDeactivateBtnEl=$("consoleDeactivateBtn");
+if(consoleSettingsBtnEl)consoleSettingsBtnEl.onclick=openSettings;
+if(consoleDeactivateBtnEl)consoleDeactivateBtnEl.onclick=deactivateSystem;
 const deactivateBtnEl=$("deactivateBtn");
 function deactivateSystem(){sessionStorage.removeItem("ectoActivated");closeSettings();document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");if(app)app.classList.add("hidden");if(bootEl)bootEl.classList.add("hidden");if(screen){screen.style.display="flex";document.body.classList.add("inactive");}}
 if(deactivateBtnEl)deactivateBtnEl.onclick=deactivateSystem;
