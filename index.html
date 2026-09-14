@@ -860,9 +860,9 @@ function updateSystemSummary(){
   const faults={pack:fault,wand:wandFault,pke:pkeFault,trap:trapFault,goggles:gogglesFault,giga:gigaFault};
   const online=Object.values(states).filter(Boolean).length, faultCount=Object.values(faults).filter(Boolean).length;
   const systems=$('systemsOnlineValue'),active=$('activeUnitsValue'),faultsEl=$('faultsValue'),status=$('systemStatusValue');
-  if(systems)systems.textContent=online+" / 6"; if(active)active.textContent=online;
+  if(systems)systems.textContent=online+" / 6"; if(active){active.textContent=online;active.title=Object.keys(states).filter(k=>states[k]).join(" • ")||"NO EQUIPMENT CONNECTED";}
   if(faultsEl){faultsEl.textContent=faultCount;faultsEl.className="value "+(faultCount?"alert":"ok");}
-  if(status){status.textContent=faultCount?"ATTENTION":online?"SYSTEMS ACTIVE":"READY";status.className="value "+(faultCount?"alert":"ok");}
+  if(status){const testing=Object.values(selfTests).some(Boolean);status.textContent=testing?"SELF-TEST":faultCount?"ATTENTION":online?"SYSTEMS ACTIVE":"READY";status.className="value "+(testing?"ok":faultCount?"alert":"ok");}
 }
 function updateConnectionOverview(){
   const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
