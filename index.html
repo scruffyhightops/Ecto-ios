@@ -14,7 +14,7 @@ button{font:inherit;color:var(--text);background:var(--deep);border:1px solid va
 button:active{background:#0b2410;box-shadow:inset 0 0 14px rgba(57,169,67,.2)}
 #boot,#app{width:100%;height:100%}
 #boot{display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto}
-.boot-shell{width:min(720px,100%);border:1px solid var(--line);background:rgba(2,10,3,.96);padding:18px;box-shadow:0 0 30px rgba(57,169,67,.08) inset}
+.boot-shell{width:min(720px,100%);border:1px solid var(--line);background:rgba(2,10,3,.96);padding:18px;box-shadow:0 0 30px rgba(57,169,67,.08) inset}.boot-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}.boot-meta div{border:1px solid var(--dim);padding:6px;font-size:7px;color:var(--dim)}.boot-meta b{color:var(--text);font-weight:normal;float:right}.boot-complete{color:var(--line)!important;font-weight:bold}
 .mark{height:64px;width:64px;border:1px solid var(--line);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px}
 .brand{text-align:center;font-size:28px;font-weight:bold;letter-spacing:.12em}
 .sub{text-align:center;color:var(--dim);font-size:9px;letter-spacing:.13em;margin-top:5px}
@@ -217,6 +217,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
     <div class="brand">ECTO OS</div>
     <div class="sub">FIELD EQUIPMENT TERMINAL</div>
     <div class="logo-slot">CUSTOM ECTO / GB LOGO SLOT — RESERVED FOR FUTURE LOGO</div>
+    <div class="boot-meta"><div>FIELD COMPUTER <b>FIELD-1984</b></div><div>CORE <b>GM-051</b></div><div>TERMINAL <b>LOCAL</b></div><div>MODE <b>DIAGNOSTIC</b></div></div>
     <div class="bootbox">
       <div class="boot-title">SYSTEM INITIALISATION</div>
       <div id="bootlog"></div>
@@ -481,15 +482,31 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 <script>
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function boot(){
-  const lines=["FIELD COMPUTER INITIALISATION","EQUIPMENT BUS","PROTON PACK INTERFACE","NEUTRONA WAND INTERFACE","PKE SENSOR INTERFACE","CONTAINMENT TRAP INTERFACE","ECTO-GOGGLES INTERFACE","GIGA-METRE INTERFACE","DIAGNOSTIC ENGINE"];
-  const box=document.getElementById("bootlog");
+  const lines=[
+    ["FIELD COMPUTER INITIALISATION",360],
+    ["MEMORY / LOCAL STORAGE",300],
+    ["EQUIPMENT BUS",340],
+    ["PROTON PACK INTERFACE",300],
+    ["NEUTRONA WAND INTERFACE",320],
+    ["PKE SENSOR INTERFACE",300],
+    ["CONTAINMENT TRAP INTERFACE",340],
+    ["ECTO-GOGGLES INTERFACE",300],
+    ["GIGA-METRE INTERFACE",320],
+    ["DIAGNOSTIC ENGINE",360],
+    ["FIELD SYSTEM INTEGRITY",420]
+  ];
+  const box=document.getElementById("bootlog"),fill=document.getElementById("bootfill"),status=document.getElementById("bootstatus");
+  box.innerHTML=""; fill.style.width="0%";
   for(let i=0;i<lines.length;i++){
-    const d=document.createElement("div");d.className="bootline";d.textContent=lines[i]+" ........ OK";box.appendChild(d);
-    document.getElementById("bootfill").style.width=Math.round((i+1)/lines.length*100)+"%";
-    document.getElementById("bootstatus").textContent=i===lines.length-1?"SYSTEMS OPERATIONAL // READY":"INITIALISING // "+Math.round((i+1)/lines.length*100)+"%";
-    await sleep(260+Math.random()*420);
+    const d=document.createElement("div");d.className="bootline";d.textContent=lines[i][0]+" ........ OK";box.appendChild(d);
+    const pct=Math.round((i+1)/lines.length*100);
+    fill.style.width=pct+"%";
+    status.textContent=i===lines.length-1?"FIELD SYSTEM INTEGRITY VERIFIED":"INITIALISING // "+pct+"%";
+    await sleep(lines[i][1]+Math.random()*160);
   }
-  await sleep(300);
+  status.textContent="SYSTEMS OPERATIONAL // ACCESS GRANTED";
+  status.classList.add("boot-complete");
+  await sleep(650);
   document.getElementById("boot").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 }
