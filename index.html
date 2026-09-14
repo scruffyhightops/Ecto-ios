@@ -76,7 +76,7 @@ button:disabled{opacity:.38!important;filter:saturate(.45)!important;cursor:not-
 .diagnostic-modal{position:fixed;inset:10px;z-index:2000;overflow:auto;margin:0!important;background:var(--bg);box-shadow:0 0 35px rgba(0,0,0,.65);max-width:none}
 .modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .modal-close{min-height:38px!important;padding:7px 10px!important;font-size:8px!important}
-.settings-modal{position:fixed;inset:10px;z-index:3000;overflow:auto;margin:0;background:var(--bg);border:1px solid var(--line);padding:12px;box-shadow:0 0 35px rgba(0,0,0,.65)}
+.settings-modal{position:fixed;inset:10px;z-index:3000;pointer-events:auto;overflow:auto;margin:0;background:var(--bg);border:1px solid var(--line);padding:12px;box-shadow:0 0 35px rgba(0,0,0,.65)}
 .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .theme-btn.active{background:var(--line);color:var(--bg);font-weight:bold}
 .custom-colour{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin-top:10px}
@@ -197,6 +197,17 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 .connection-card.alert{background:var(--warn)!important;color:var(--bg)!important}.connection-card.alert .connection-name,.connection-card.alert .connection-state{color:var(--bg)!important}
 .console-footer{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.console-footer button{min-height:38px;padding:7px;font-size:7px}
 @media(max-width:430px){.equipment-select-panel{padding:7px!important}.menu{gap:5px!important}.menu button{min-height:50px!important}.connection-overview{padding:6px!important}.connection-grid{gap:4px!important}.connection-card{min-height:40px!important}.system-info-panel{margin-top:5px!important;padding:7px!important}.system-info-grid{gap:5px}.system-info-card{padding:7px;min-height:38px}.system-info-card .label{font-size:6px}.system-info-card .value{font-size:13px}.system-info-card.event-card .value{font-size:7px}.console-footer{gap:5px;margin-top:5px}.console-footer button{min-height:34px;font-size:6px}}
+</style>
+
+<style id="v19-equipment-layout">
+@media(max-width:430px){
+  .equipment-select-panel{padding:8px!important}
+  .equipment-select-panel .section-title{margin-bottom:7px!important}
+  .menu{grid-template-columns:repeat(3,1fr)!important;gap:7px!important}
+  .menu button.device-btn{min-height:64px!important;height:64px!important;border-radius:2px!important;font-size:7px!important;padding:7px 4px!important}
+  .connection-overview{margin-top:7px!important}
+  .system-info-panel{margin-top:6px!important}
+}
 </style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
@@ -878,12 +889,28 @@ if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
 document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
 if($("customColour"))$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
 if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
-const consoleSettingsBtnEl=$("consoleSettingsBtn"),consoleDeactivateBtnEl=$("consoleDeactivateBtn");
-if(consoleSettingsBtnEl)consoleSettingsBtnEl.onclick=openSettings;
-if(consoleDeactivateBtnEl)consoleDeactivateBtnEl.onclick=deactivateSystem;
-function deactivateSystem(){sessionStorage.removeItem("ectoActivated");closeSettings();document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");if(app)app.classList.add("hidden");if(bootEl)bootEl.classList.add("hidden");if(screen){screen.style.display="flex";document.body.classList.add("inactive");}}
-// Delegated fallback keeps the two system controls reliable on touch devices.
-document.addEventListener("click",e=>{const t=e.target.closest("#consoleSettingsBtn,#settingsClose,#consoleDeactivateBtn");if(!t)return;e.preventDefault();e.stopPropagation();if(t.id==="consoleSettingsBtn")openSettings();else if(t.id==="settingsClose")closeSettings();else deactivateSystem();},true);
+function deactivateSystem(){
+  try{sessionStorage.removeItem("ectoActivated")}catch(e){}
+  closeSettings();
+  document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));
+  const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");
+  if(app)app.classList.add("hidden");
+  if(bootEl)bootEl.classList.add("hidden");
+  if(screen)screen.style.display="flex";
+  document.body.classList.add("inactive");
+}
+function bindSystemControl(id,fn){
+  const el=$(id);
+  if(!el)return;
+  el.onclick=null;
+  el.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();fn()},false);
+  el.addEventListener("touchend",e=>{e.preventDefault();e.stopPropagation();fn()},false);
+}
+bindSystemControl("consoleSettingsBtn",openSettings);
+bindSystemControl("consoleDeactivateBtn",deactivateSystem);
+bindSystemControl("settingsClose",closeSettings);
+
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
+<!-- v1.9: larger equipment tiles + robust bottom system controls -->
 </html>
