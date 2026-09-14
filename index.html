@@ -50,7 +50,7 @@ button:active{background:#0b2410;box-shadow:inset 0 0 14px rgba(57,169,67,.2)}
 .wave-wrap:before{content:"";position:absolute;inset:1px;pointer-events:none;background-image:linear-gradient(rgba(57,169,67,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(57,169,67,.13) 1px,transparent 1px);background-size:24px 24px;opacity:.75}
 .wave-caption{position:absolute;top:7px;left:8px;font-size:7px;letter-spacing:.1em;color:var(--dim);pointer-events:none}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-button.disabled{opacity:.28;filter:saturate(.35)}
+button.disabled{opacity:.28!important;filter:saturate(.35)!important;cursor:not-allowed} button:disabled{opacity:.28!important;filter:saturate(.35)!important;cursor:not-allowed}
 .device-btn.selected{background:#0b2410;box-shadow:inset 0 0 18px rgba(57,169,67,.18),0 0 8px rgba(57,169,67,.08);border-color:var(--line)}
 #increase:disabled,#decrease:disabled,#fault:disabled,#cancelFault:disabled{opacity:.28}
 .range{width:100%}
@@ -59,6 +59,11 @@ button.disabled{opacity:.28;filter:saturate(.35)}
 .ok{color:var(--text)}
 @media(max-width:430px){.menu,.device,.controls{grid-template-columns:1fr 1fr}.header h1{font-size:14px}.barrow{grid-template-columns:84px 1fr 34px}.value{font-size:17px}#trapFault{font-size:8px}}
 
+
+.event-log{max-height:96px;overflow:hidden;font-family:monospace;font-size:11px;line-height:1.5;padding:8px}
+.event-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+button:disabled{opacity:.38!important;filter:saturate(.45)!important;cursor:not-allowed}
 </style>
 <style>
 .activate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#020702;padding:24px}.activate-card{width:min(420px,92vw);border:1px solid var(--line);background:#061006;padding:28px 22px;text-align:center;box-shadow:0 0 28px rgba(57,169,67,.12)}.activate-mark{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:14px}.activate-title{font-size:25px;letter-spacing:4px;margin-bottom:8px}.activate-sub{font-size:10px;color:var(--dim);line-height:1.6;margin-bottom:24px}.activate-btn{width:100%;min-height:52px;font-weight:bold;letter-spacing:2px}
@@ -126,6 +131,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
         <button id="connect">CONNECT PACK</button>
         <button id="disconnect" class="disabled">DISCONNECT PACK</button>
         <button id="increase">INCREASE OUTPUT</button>
+      <button id="packSelfTest">RUN SELF-TEST</button>
         <button id="decrease">DECREASE OUTPUT</button>
         <button id="fault">SIMULATE FAULT</button>
         <button id="cancelFault" disabled>CANCEL FAULT</button>
@@ -161,6 +167,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
           <button id="wandConnect">CONNECT WAND</button>
           <button id="wandDisconnect" class="disabled">DISCONNECT WAND</button>
           <button id="wandIncrease">INCREASE OUTPUT</button>
+          <button id="wandSelfTest">RUN SELF-TEST</button>
           <button id="wandDecrease">DECREASE OUTPUT</button>
           <button id="wandFault">SIMULATE FAULT</button>
           <button id="wandCancelFault" disabled>CANCEL FAULT</button>
@@ -198,6 +205,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
           <button id="trapDeploy">DEPLOY TRAP</button>
           <button id="trapReset">RESET TRAP</button>
           <button id="trapFault">SIMULATE CONTAINMENT FAULT</button>
+      <button id="trapSelfTest">RUN SELF-TEST</button>
           <button id="trapCancelFault" disabled>CANCEL FAULT</button>
         </div>
         <p class="note" id="trapNote">Trap is closed. Deploy to activate the containment field.</p>
@@ -210,17 +218,44 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
     </div>
 
     <div id="genericEquipment" class="hidden">
-      <div class="panel"><div class="label">STATUS</div><div class="value" id="otherStatus">READY</div></div>
-      <div class="section">
-        <div class="section-title">FIELD ACTIVITY WAVEFORM</div>
-        <div class="wave-wrap"><canvas id="otherWave" class="wave"></canvas><div class="wave-caption">LIVE FIELD TRACE // SIMULATION</div></div>
+      <div class="device">
+        <div class="panel"><div class="label">CONNECTION</div><div class="value" id="pkeConn">DISCONNECTED</div></div>
+        <div class="panel"><div class="label">STATUS</div><div class="value ok" id="pkeStatus">STANDBY</div></div>
       </div>
       <div class="section">
-        <div class="barrow"><span>FIELD ACTIVITY</span><span class="bar"><i id="otherBar"></i></span><b id="otherVal">0%</b></div>
-        <div class="barrow"><span>SIGNAL STABILITY</span><span class="bar"><i id="otherBar2"></i></span><b id="otherVal2">0%</b></div>
+        <div class="section-title">PKE SENSOR TRACE // DIAGNOSTIC RESPONSE</div>
+        <div class="wave-wrap"><canvas id="pkeWave" class="wave"></canvas><div class="wave-caption">LIVE SENSOR TRACE // PULSE ANALYSIS</div></div>
       </div>
-      <div class="controls"><button id="otherAction">INITIALISE</button><button id="otherReset">RESET</button></div>
-      <p class="note" id="otherNote"></p>
+      <div class="readings">
+        <div class="panel"><div class="label">SYSTEM</div><div class="barrow"><span>POWER</span><span class="bar"><i id="pkePowerBar"></i></span><b id="pkePowerVal">0%</b></div></div>
+        <div class="panel"><div class="label">SENSOR</div><div class="barrow"><span>ARRAY HEALTH</span><span class="bar"><i id="pkeSensorBar"></i></span><b id="pkeSensorVal">0%</b></div></div>
+        <div class="panel"><div class="label">FIELD</div><div class="barrow"><span>RESPONSE</span><span class="bar"><i id="pkeResponseBar"></i></span><b id="pkeResponseVal">0%</b></div></div>
+        <div class="panel"><div class="label">SYSTEM</div><div class="barrow"><span>STABILITY</span><span class="bar"><i id="pkeStabilityBar"></i></span><b id="pkeStabilityVal">0%</b></div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">PKE CONTROLS</div>
+        <div class="controls">
+          <button id="pkeConnect">CONNECT PKE</button>
+          <button id="pkeDisconnect" class="disabled">DISCONNECT PKE</button>
+          <button id="pkeIncrease">INCREASE OUTPUT</button>
+          <button id="pkeSelfTest">RUN SELF-TEST</button>
+          <button id="pkeDecrease">DECREASE OUTPUT</button>
+          <button id="pkeFault">SIMULATE FAULT</button>
+          <button id="pkeCancelFault" disabled>CANCEL FAULT</button>
+        </div>
+        <p class="note" id="pkeNote">PKE is offline. Connect equipment to begin simulated monitoring.</p>
+      </div>
+      <div class="device">
+        <div class="panel"><div class="label">SENSOR RESPONSE</div><div class="value" id="pkeResponseReadout">0%</div></div>
+        <div class="panel"><div class="label">SCAN RATE</div><div class="value" id="pkeRateReadout">0 Hz</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">SYSTEM EVENT LOG</div>
+      <div class="panel event-log" id="eventLog">
+        <div class="event-line">SYSTEM READY // AWAITING EQUIPMENT INPUT</div>
+      </div>
     </div>
   </div>
 </div>
@@ -243,18 +278,60 @@ async function boot(){
 }
 boot();
 
+
+const selfTests={pack:false,wand:false,pke:false,trap:false};
+function setSelfTest(device,active){
+  selfTests[device]=active;
+  const ids={pack:"packSelfTest",wand:"wandSelfTest",pke:"pkeSelfTest",trap:"trapSelfTest"};
+  const b=$(ids[device]);
+  if(b){
+    b.disabled=active || (
+      device==="pack" ? !connected :
+      device==="wand" ? !wandConnected :
+      device==="pke" ? !pkeConnected :
+      !trapDeployed
+    );
+    b.classList.toggle("disabled",b.disabled);
+    b.textContent=active?"SELF-TEST RUNNING":"RUN SELF-TEST";
+  }
+}
+function runSelfTest(device, connectedState, finish){
+  if(!connectedState || selfTests[device]) return;
+  setSelfTest(device,true);
+  logEvent(device.toUpperCase()+" SELF-TEST STARTED");
+  let step=0;
+  const steps=["POWER CHECK","SENSOR CHECK","FIELD CHECK","STABILITY CHECK","SELF-TEST COMPLETE"];
+  const timer=setInterval(()=>{
+    if(device==="pack" && !connected || device==="wand" && !wandConnected || device==="pke" && !pkeConnected || device==="trap" && !trapDeployed){
+      clearInterval(timer); setSelfTest(device,false); return;
+    }
+    logEvent(device.toUpperCase()+" // "+steps[step]);
+    step++;
+    if(step>=steps.length){
+      clearInterval(timer);
+      setSelfTest(device,false);
+      finish();
+    }
+  },500);
+}
+
 let connected=false,output=62,fault=false;
 const $=id=>document.getElementById(id);
 function clamp(v){return Math.max(0,Math.min(100,v))}
+function setButtonState(id, disabled){
+  const b=$(id);
+  if(!b) return;
+  b.disabled=!!disabled;
+  b.classList.toggle("disabled",!!disabled);
+}
 function syncPackControls(){
-  $("connect").classList.toggle("disabled",connected);
-  $("disconnect").classList.toggle("disabled",!connected);
-  $("connect").disabled=connected;
-  $("disconnect").disabled=!connected;
-  $("increase").disabled=!connected || fault;
-  $("decrease").disabled=!connected || fault;
-  $("fault").disabled=!connected || fault;
-  $("cancelFault").disabled=!connected || !fault;
+  setSelfTest("pack",selfTests.pack);
+  setButtonState("connect",connected);
+  setButtonState("disconnect",!connected);
+  setButtonState("increase",!connected || fault || selfTests.pack);
+  setButtonState("decrease",!connected || fault || selfTests.pack);
+  setButtonState("fault",!connected || fault || selfTests.pack);
+  setButtonState("cancelFault",!connected || !fault || selfTests.pack);
 }
 function renderPack(){
   $("conn").textContent=connected?"CONNECTED":"DISCONNECTED";
@@ -271,6 +348,7 @@ function renderPack(){
   syncPackControls();
 }
 $("connect").onclick=()=>{connected=true;fault=false;output=62;renderPack()}
+$("packSelfTest").onclick=()=>runSelfTest("pack",connected,()=>{fault=false;output=62;renderPack();logEvent("PROTON PACK SELF-TEST PASSED")})
 $("disconnect").onclick=()=>{connected=false;fault=false;renderPack()}
 $("increase").onclick=()=>{if(connected&&!fault){output=clamp(output+8);renderPack()}}
 $("decrease").onclick=()=>{if(connected&&!fault){output=clamp(output-8);renderPack()}}
@@ -280,8 +358,8 @@ setInterval(()=>{if(connected)renderPack()},900);
 
 const cvs=$("wave"),ctx=cvs.getContext("2d");
 const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
-const oc=$("otherWave"),octx=oc.getContext("2d");
 const trapCvs=$("trapWave"),trapCtx=trapCvs.getContext("2d");
+const pkeCvs=$("pkeWave"),pkeCtx=pkeCvs.getContext("2d");
 let t=0;
 function resize(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;return d}
 function drawPackWave(){
@@ -301,10 +379,10 @@ function drawPackWave(){
 
 let wandConnected=false,wandOutput=62,wandFault=false;
 function syncWandControls(){
-  $("wandConnect").classList.toggle("disabled",wandConnected);$("wandDisconnect").classList.toggle("disabled",!wandConnected);
-  $("wandConnect").disabled=wandConnected;$("wandDisconnect").disabled=!wandConnected;
-  $("wandIncrease").disabled=!wandConnected||wandFault;$("wandDecrease").disabled=!wandConnected||wandFault;
-  $("wandFault").disabled=!wandConnected||wandFault;$("wandCancelFault").disabled=!wandConnected||!wandFault;
+  setSelfTest("wand",selfTests.wand);
+  setButtonState("wandConnect",wandConnected); setButtonState("wandDisconnect",!wandConnected);
+  setButtonState("wandIncrease",!wandConnected||wandFault||selfTests.wand); setButtonState("wandDecrease",!wandConnected||wandFault||selfTests.wand);
+  setButtonState("wandFault",!wandConnected||wandFault||selfTests.wand); setButtonState("wandCancelFault",!wandConnected||!wandFault||selfTests.wand);
 }
 function renderWand(){
   $("wandConn").textContent=wandConnected?"CONNECTED":"DISCONNECTED";
@@ -321,12 +399,13 @@ function renderWand(){
   $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // three-channel stream simulation live.":"Wand is offline. Connect equipment to begin simulated monitoring.";
   syncWandControls();
 }
-$("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand()};
-$("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand()};
+$("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND CONNECTED")};
+$("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand();logEvent("NEUTRONA WAND DISCONNECTED")};
 $("wandIncrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput+8);renderWand()}};
 $("wandDecrease").onclick=()=>{if(wandConnected&&!wandFault){wandOutput=clamp(wandOutput-8);renderWand()}};
 $("wandFault").onclick=()=>{if(wandConnected){wandFault=true;wandOutput=96;renderWand()}};
 $("wandCancelFault").onclick=()=>{if(wandConnected&&wandFault){wandFault=false;wandOutput=62;renderWand()}};
+$("wandSelfTest").onclick=()=>runSelfTest("wand",wandConnected,()=>{wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND SELF-TEST PASSED")});
 setInterval(()=>{if(wandConnected)renderWand()},900);
 
 function drawWand(){
@@ -374,9 +453,9 @@ function drawWand(){
 
 let trapDeployed=false,trapFault=false,trapEntity=0,trapCharge=100;
 function syncTrapControls(){
-  $("trapDeploy").disabled=trapDeployed;$("trapReset").disabled=!trapDeployed;
-  $("trapFault").disabled=!trapDeployed||trapFault;$("trapCancelFault").disabled=!trapDeployed||!trapFault;
-  $("trapDeploy").classList.toggle("disabled",trapDeployed);$("trapReset").classList.toggle("disabled",!trapDeployed);
+  setSelfTest("trap",selfTests.trap);
+  setButtonState("trapDeploy",trapDeployed || selfTests.trap); setButtonState("trapReset",!trapDeployed || selfTests.trap);
+  setButtonState("trapFault",!trapDeployed||trapFault||selfTests.trap); setButtonState("trapCancelFault",!trapDeployed||!trapFault||selfTests.trap);
 }
 function renderTrap(){
   const field=trapDeployed?(trapFault?clamp(48+Math.random()*12):clamp(82+trapEntity*.12+Math.random()*4-2)):0;
@@ -392,10 +471,11 @@ function renderTrap(){
   $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity energy rising.":"Trap is closed. Deploy to activate the containment field.";
   syncTrapControls();
 }
-$("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap()};
-$("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap()};
+$("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP DEPLOYED")};
+$("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
 $("trapFault").onclick=()=>{if(trapDeployed){trapFault=true;trapEntity=78;renderTrap()}};
 $("trapCancelFault").onclick=()=>{if(trapDeployed&&trapFault){trapFault=false;trapEntity=28;renderTrap()}};
+$("trapSelfTest").onclick=()=>runSelfTest("trap",trapDeployed,()=>{trapFault=false;renderTrap();logEvent("CONTAINMENT TRAP SELF-TEST PASSED")});
 setInterval(()=>{if(trapDeployed)renderTrap()},850);
 
 function drawTrap(){
@@ -412,11 +492,79 @@ function drawTrap(){
   trapCtx.shadowBlur=0;
 }
 
-function drawOther(){
-  const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#55ccff";octx.lineWidth=1.4;octx.shadowBlur=5;octx.shadowColor="#55ccff";octx.beginPath();
-  for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();octx.shadowBlur=0;
+
+
+function logEvent(message){
+  const log=$("eventLog");
+  if(!log)return;
+  const line=document.createElement("div");
+  line.className="event-line";
+  line.textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})+" // "+message;
+  log.prepend(line);
+  while(log.children.length>5)log.removeChild(log.lastChild);
 }
-function draw(){drawPackWave();drawWand();drawTrap();drawOther();requestAnimationFrame(draw)}
+
+let pkeConnected=false,pkeOutput=58,pkeFault=false;
+function syncPkeControls(){
+  setSelfTest("pke",selfTests.pke);
+  setButtonState("pkeConnect",pkeConnected); setButtonState("pkeDisconnect",!pkeConnected);
+  setButtonState("pkeIncrease",!pkeConnected||pkeFault||selfTests.pke); setButtonState("pkeDecrease",!pkeConnected||pkeFault||selfTests.pke);
+  setButtonState("pkeFault",!pkeConnected||pkeFault||selfTests.pke); setButtonState("pkeCancelFault",!pkeConnected||!pkeFault||selfTests.pke);
+}
+function renderPke(){
+  const power=pkeConnected?clamp(pkeOutput+Math.random()*3-1.5):0;
+  const sensor=pkeConnected?(pkeFault?clamp(34+Math.random()*12):clamp(97-pkeOutput*.05+Math.random()*2-1)):0;
+  const response=pkeConnected?(pkeFault?clamp(88+Math.random()*10):clamp(28+pkeOutput*.48+Math.random()*5-2.5)):0;
+  const stability=pkeConnected?(pkeFault?clamp(10+Math.random()*20):clamp(98-response*.12+Math.random()*2-1)):0;
+  const rate=pkeConnected?(1.8+pkeOutput*.11+Math.random()*.4):0;
+  [["pkePowerBar",power],["pkeSensorBar",sensor],["pkeResponseBar",response],["pkeStabilityBar",stability]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("pkePowerVal").textContent=Math.round(power)+"%";
+  $("pkeSensorVal").textContent=Math.round(sensor)+"%";
+  $("pkeResponseVal").textContent=Math.round(response)+"%";
+  $("pkeStabilityVal").textContent=Math.round(stability)+"%";
+  $("pkeResponseReadout").textContent=Math.round(response)+"%";
+  $("pkeRateReadout").textContent=rate.toFixed(1)+" Hz";
+  $("pkeConn").textContent=pkeConnected?"CONNECTED":"DISCONNECTED";
+  $("pkeStatus").textContent=pkeFault?"SENSOR FAULT":pkeConnected?"NOMINAL":"STANDBY";
+  $("pkeStatus").className="value "+(pkeFault?"alert":"ok");
+  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // diagnostic pulse response live.":"PKE is offline. Connect equipment to begin simulated monitoring.";
+  syncPkeControls();
+}
+$("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
+$("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;renderPke();logEvent("PKE DISCONNECTED // SYSTEM STANDBY")};
+$("pkeIncrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput+8);renderPke();logEvent("PKE OUTPUT INCREASED // LEVEL "+pkeOutput+"%")}};
+$("pkeDecrease").onclick=()=>{if(pkeConnected&&!pkeFault){pkeOutput=clamp(pkeOutput-8);renderPke();logEvent("PKE OUTPUT DECREASED // LEVEL "+pkeOutput+"%")}};
+$("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke();logEvent("SIMULATION FAULT // SENSOR RESPONSE ERRATIC")}};
+$("pkeCancelFault").onclick=()=>{if(pkeConnected&&pkeFault){pkeFault=false;pkeOutput=58;renderPke();logEvent("FAULT CLEARED // SENSOR RESPONSE NOMINAL")}};
+$("pkeSelfTest").onclick=()=>runSelfTest("pke",pkeConnected,()=>{pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE SELF-TEST PASSED")});
+
+setInterval(()=>{if(pkeConnected)renderPke()},900);
+
+function drawPke(){
+  const d=resize(pkeCvs);pkeCtx.setTransform(d,0,0,d,0,0);pkeCtx.clearRect(0,0,pkeCvs.clientWidth,pkeCvs.clientHeight);
+  const w=pkeCvs.clientWidth,h=pkeCvs.clientHeight,mid=h/2;
+  pkeCtx.beginPath();
+  pkeCtx.lineWidth=pkeFault?1.35:1.2;
+  pkeCtx.strokeStyle=pkeFault?"#ff5555":"#55ccff";
+  pkeCtx.shadowBlur=pkeFault?7:5;pkeCtx.shadowColor=pkeFault?"#ff5555":"#55ccff";
+  for(let x=0;x<w;x++){
+    const phase=(x*.085-t*2.0)%(Math.PI*2);
+    const pulse=Math.max(0,Math.sin(phase))**10;
+    let y=mid+(pkeConnected?(pulse*(8+pkeOutput*.25)):1.8*Math.sin(x*.05+t));
+    y+=Math.sin(x*.018+t*.8)*(pkeConnected?2.5:1.2);
+    if(pkeFault)y+=Math.sin(x*.21+t*5.2)*18+(Math.random()-.5)*42;
+    x?pkeCtx.lineTo(x,y):pkeCtx.moveTo(x,y);
+  }
+  pkeCtx.stroke();
+  if(pkeConnected&&!pkeFault){
+    pkeCtx.lineWidth=.65;pkeCtx.strokeStyle="rgba(255,255,255,.55)";pkeCtx.shadowBlur=2;pkeCtx.shadowColor="#fff";pkeCtx.beginPath();
+    for(let x=0;x<w;x++){const y=mid+Math.sin(x*.17-t*3)*(1.5+pkeOutput*.035);x?pkeCtx.lineTo(x,y):pkeCtx.moveTo(x,y)}
+    pkeCtx.stroke();
+  }
+  pkeCtx.shadowBlur=0;
+}
+
+function draw(){drawPackWave();drawWand();drawTrap();drawPke();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
@@ -428,11 +576,11 @@ document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
   if(d!=="pack"){
     activeOther=d;$("wandInterface").classList.toggle("hidden",d!=="wand");
     $("trapInterface").classList.toggle("hidden",d!=="trap");
-    $("genericEquipment").classList.toggle("hidden",d==="wand"||d==="trap");
+    $("genericEquipment").classList.toggle("hidden",d!=="pke");
     $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d];
     if(d==="wand") renderWand();
     else if(d==="trap") renderTrap();
-    else {$("otherStatus").textContent="READY";$("otherNote").textContent="Simulation ready // select INITIALISE to begin.";ov=35+Math.random()*30;renderOther()}
+    else if(d==="pke"){renderPke()}
   }
 });
 function renderOther(){
@@ -441,7 +589,7 @@ function renderOther(){
 }
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
-renderWand();renderTrap();renderPack();syncPackControls();
+renderWand();renderTrap();renderPke();renderPack();syncPackControls();syncPkeControls();
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
