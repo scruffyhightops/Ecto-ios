@@ -569,20 +569,30 @@ function syncPackControls(){
   setButtonState("fault",!connected || fault || selfTests.pack);
   setButtonState("cancelFault",!connected || !fault || selfTests.pack);
 }
+const telemetry={pack:{power:0,field:0,contain:0,temp:0},wand:{field:0,stability:0,temp:0,rate:0},pke:{power:0,sensor:0,response:0,stability:0,rate:0},goggles:{optical:0,spectral:0,stability:0,visibility:0},giga:{power:0,field:0,stability:0,reading:0}};
+function drift(current,target,amount){return current+(target-current)*amount+(Math.random()-.5)*0.7}
+function telemetryValue(current,target,amount=0.18){return clamp(drift(current,target,amount))}
+
 function renderPack(){
   $("conn").textContent=connected?"CONNECTED":"DISCONNECTED";
   $("packStatus").textContent=fault?"FIELD FAULT":connected?"NOMINAL":"STANDBY";
   $("packStatus").className="value "+(fault?"alert":"ok");
-  const power=connected?clamp(output+(Math.random()*4-2)):0;
-  const field=connected?clamp(output-5+(Math.random()*5-2.5)):0;
-  const contain=connected?clamp(96-output*.08+(Math.random()*2-1)):0;
-  const temp=connected?clamp(54+output*.42+(Math.random()*2-1)):0;
-  [["powerBar",power],["fieldBar",field],["containBar",contain],["tempBar",temp]].forEach(([id,v])=>$(id).style.width=v+"%");
-  $("powerVal").textContent=Math.round(power)+"%";$("fieldVal").textContent=Math.round(field)+"%";
-  $("containVal").textContent=Math.round(contain)+"%";$("tempVal").textContent=Math.round(temp)+"°C";
-  $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":connected?"Pack telemetry active // simulated readings live.":"Pack is offline. Connect equipment to begin simulated monitoring.";
-  syncPackControls();
-  updateConnectionOverview();
+  const targetPower=connected?output:0;
+  const targetField=connected?clamp(output-4):0;
+  const targetContain=connected?clamp(98-output*.11):0;
+  const targetTemp=connected?clamp(52+output*.46):0;
+  telemetry.pack.power=telemetryValue(telemetry.pack.power,targetPower,.24);
+  telemetry.pack.field=telemetryValue(telemetry.pack.field,targetField,.2);
+  telemetry.pack.contain=telemetryValue(telemetry.pack.contain,targetContain,.16);
+  telemetry.pack.temp=telemetryValue(telemetry.pack.temp,targetTemp,.12);
+  if(!connected) Object.assign(telemetry.pack,{power:0,field:0,contain:0,temp:0});
+  if(fault){telemetry.pack.field=telemetryValue(telemetry.pack.field,94,.28);telemetry.pack.contain=telemetryValue(telemetry.pack.contain,58,.22);telemetry.pack.temp=telemetryValue(telemetry.pack.temp,98,.18)}
+  const vals=[telemetry.pack.power,telemetry.pack.field,telemetry.pack.contain,telemetry.pack.temp];
+  [["powerBar",vals[0]],["fieldBar",vals[1]],["containBar",vals[2]],["tempBar",vals[3]]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("powerVal").textContent=Math.round(vals[0])+"%";$("fieldVal").textContent=Math.round(vals[1])+"%";
+  $("containVal").textContent=Math.round(vals[2])+"%";$("tempVal").textContent=Math.round(vals[3])+"°C";
+  $("packNote").textContent=fault?"SIMULATION FAULT // FIELD INSTABILITY DETECTED":connected?"Pack telemetry active // readings tracking output load.":"Pack is offline. Connect equipment to begin simulated monitoring.";
+  syncPackControls(); updateConnectionOverview();
 }
 $("connect").onclick=()=>{connected=true;fault=false;output=62;renderPack()}
 $("packSelfTest").onclick=()=>runSelfTest("pack",connected,()=>{fault=false;output=62;renderPack();logEvent("PROTON PACK SELF-TEST PASSED")})
@@ -625,17 +635,23 @@ function renderWand(){
   $("wandConn").textContent=wandConnected?"CONNECTED":"DISCONNECTED";
   $("wandStatus").textContent=wandFault?"STREAM FAULT":wandConnected?"NOMINAL":"STANDBY";
   $("wandStatus").className="value "+(wandFault?"alert":"ok");
-  const field=wandConnected?clamp(wandOutput+Math.random()*4-2):0;
-  const stability=wandConnected?(wandFault?clamp(18+Math.random()*18):clamp(99-wandOutput*.05+Math.random()*2-1)):0;
-  const temp=wandConnected?clamp(38+wandOutput*.25+Math.random()*2-1):0;
-  const rate=wandConnected?(wandOutput*.18+1+Math.random()*.6):0;
-  [["wandOutputBar",wandConnected?wandOutput:0],["wandFieldBar",field],["wandStabilityBar",stability],["wandTempBar",temp]].forEach(([id,v])=>$(id).style.width=v+"%");
-  $("wandOutputVal").textContent=Math.round(wandConnected?wandOutput:0)+"%";$("wandFieldVal").textContent=Math.round(field)+"%";
-  $("wandStabilityVal").textContent=Math.round(stability)+"%";$("wandTempVal").textContent=Math.round(temp)+"°C";
-  $("wandTempReadout").textContent=Math.round(temp)+"°C";$("wandRateReadout").textContent=wandConnected?rate.toFixed(1)+" Hz":"0 Hz";
-  $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // three-channel stream simulation live.":"Wand is offline. Connect equipment to begin simulated monitoring.";
-  syncWandControls();
-  updateConnectionOverview();
+  const targetField=wandConnected?wandOutput:0;
+  const targetStability=wandConnected?clamp(101-wandOutput*.07):0;
+  const targetTemp=wandConnected?clamp(36+wandOutput*.3):0;
+  const targetRate=wandConnected?(1.2+wandOutput*.19):0;
+  telemetry.wand.field=telemetryValue(telemetry.wand.field,targetField,.22);
+  telemetry.wand.stability=telemetryValue(telemetry.wand.stability,targetStability,.16);
+  telemetry.wand.temp=telemetryValue(telemetry.wand.temp,targetTemp,.12);
+  telemetry.wand.rate=drift(telemetry.wand.rate,targetRate,.2);
+  if(!wandConnected)Object.assign(telemetry.wand,{field:0,stability:0,temp:0,rate:0});
+  if(wandFault){telemetry.wand.stability=telemetryValue(telemetry.wand.stability,18,.3);telemetry.wand.temp=telemetryValue(telemetry.wand.temp,96,.2);telemetry.wand.rate=drift(telemetry.wand.rate,19,.3)}
+  const vals=[wandConnected?wandOutput:0,telemetry.wand.field,telemetry.wand.stability,telemetry.wand.temp];
+  [["wandOutputBar",vals[0]],["wandFieldBar",vals[1]],["wandStabilityBar",vals[2]],["wandTempBar",vals[3]]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("wandOutputVal").textContent=Math.round(vals[0])+"%";$("wandFieldVal").textContent=Math.round(vals[1])+"%";
+  $("wandStabilityVal").textContent=Math.round(vals[2])+"%";$("wandTempVal").textContent=Math.round(vals[3])+"°C";
+  $("wandTempReadout").textContent=Math.round(vals[3])+"°C";$("wandRateReadout").textContent=wandConnected?telemetry.wand.rate.toFixed(1)+" Hz":"0 Hz";
+  $("wandNote").textContent=wandFault?"SIMULATION FAULT // PROTON STREAM INSTABILITY DETECTED":wandConnected?"Wand telemetry active // stream response tracking output.":"Wand is offline. Connect equipment to begin simulated monitoring.";
+  syncWandControls(); updateConnectionOverview();
 }
 $("wandConnect").onclick=()=>{wandConnected=true;wandFault=false;wandOutput=62;renderWand();logEvent("NEUTRONA WAND CONNECTED")};
 $("wandDisconnect").onclick=()=>{wandConnected=false;wandFault=false;renderWand();logEvent("NEUTRONA WAND DISCONNECTED")};
@@ -696,19 +712,21 @@ function syncTrapControls(){
   setButtonState("trapFault",!trapDeployed||trapFault||selfTests.trap); setButtonState("trapCancelFault",!trapDeployed||!trapFault||selfTests.trap);
 }
 function renderTrap(){
-  const field=trapDeployed?(trapFault?clamp(48+Math.random()*12):clamp(82+trapEntity*.12+Math.random()*4-2)):0;
-  const entity=trapDeployed?(trapFault?clamp(82+Math.random()*14):clamp(trapEntity+Math.random()*5-2)):0;
-  const stability=trapDeployed?(trapFault?clamp(12+Math.random()*16):clamp(99-entity*.42+Math.random()*2-1)):0;
-  if(trapDeployed&&!trapFault){trapEntity=clamp(trapEntity+(.7+Math.random()*1.2));trapCharge=clamp(trapCharge-.18-Math.random()*.12)}
-  if(trapDeployed&&trapFault){trapEntity=clamp(trapEntity+1.5+Math.random()*2);trapCharge=clamp(trapCharge-.7-Math.random()*.5)}
+  if(trapDeployed&&!trapFault){trapEntity=clamp(trapEntity+(0.45+Math.random()*.75));trapCharge=clamp(trapCharge-.12-Math.random()*.08)}
+  if(trapDeployed&&trapFault){trapEntity=clamp(trapEntity+(1.1+Math.random()*1.4));trapCharge=clamp(trapCharge-.55-Math.random()*.35)}
+  const targetField=trapDeployed?clamp(78+trapEntity*.17):0;
+  const targetEntity=trapDeployed?trapEntity:0;
+  const targetStability=trapDeployed?clamp(100-trapEntity*.46):0;
+  const field=trapDeployed?(trapFault?clamp(48+Math.random()*10):telemetryValue(telemetry.pack?.field||0,targetField,.2)):0;
+  const entity=trapDeployed?clamp(targetEntity+(Math.random()-.5)*3):0;
+  const stability=trapDeployed?(trapFault?clamp(14+Math.random()*14):clamp(targetStability+(Math.random()-.5)*2)):0;
   [["trapFieldBar",field],["trapEntityBar",entity],["trapStabilityBar",stability],["trapChargeBar",trapDeployed?trapCharge:0]].forEach(([id,v])=>$(id).style.width=v+"%");
   $("trapFieldVal").textContent=Math.round(field)+"%";$("trapEntityVal").textContent=Math.round(entity)+"%";$("trapStabilityVal").textContent=Math.round(stability)+"%";$("trapChargeVal").textContent=Math.round(trapDeployed?trapCharge:0)+"%";
   $("trapEntityReadout").textContent=Math.round(entity)+"%";$("trapLoadReadout").textContent=Math.round(entity)+"%";
   $("trapFieldReadout").textContent=trapFault?"UNSTABLE":trapDeployed?"ACTIVE":"OFFLINE";$("trapFieldReadout").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
   $("trapStatus").textContent=trapFault?"CONTAINMENT FAULT":trapDeployed?"CONTAINING":"STANDBY";$("trapStatus").className="value "+(trapFault?"alert":trapDeployed?"ok":"");
-  $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity energy rising.":"Trap is closed. Deploy to activate the containment field.";
-  syncTrapControls();
-  updateConnectionOverview();
+  $("trapNote").textContent=trapFault?"SIMULATION FAULT // CONTAINMENT FIELD LOSING COHERENCE":trapDeployed?"Containment field active // entity load influencing stability.":"Trap is closed. Deploy to activate the containment field.";
+  syncTrapControls(); updateConnectionOverview();
 }
 $("trapDeploy").onclick=()=>{trapDeployed=true;trapFault=false;trapEntity=18;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP DEPLOYED")};
 $("trapReset").onclick=()=>{trapDeployed=false;trapFault=false;trapEntity=0;trapCharge=100;renderTrap();logEvent("CONTAINMENT TRAP RESET")};
@@ -753,24 +771,25 @@ function syncPkeControls(){
   setButtonState("pkeFault",!pkeConnected||pkeFault||selfTests.pke); setButtonState("pkeCancelFault",!pkeConnected||!pkeFault||selfTests.pke);
 }
 function renderPke(){
-  const power=pkeConnected?clamp(pkeOutput+Math.random()*3-1.5):0;
-  const sensor=pkeConnected?(pkeFault?clamp(34+Math.random()*12):clamp(97-pkeOutput*.05+Math.random()*2-1)):0;
-  const response=pkeConnected?(pkeFault?clamp(88+Math.random()*10):clamp(28+pkeOutput*.48+Math.random()*5-2.5)):0;
-  const stability=pkeConnected?(pkeFault?clamp(10+Math.random()*20):clamp(98-response*.12+Math.random()*2-1)):0;
-  const rate=pkeConnected?(1.8+pkeOutput*.11+Math.random()*.4):0;
-  [["pkePowerBar",power],["pkeSensorBar",sensor],["pkeResponseBar",response],["pkeStabilityBar",stability]].forEach(([id,v])=>$(id).style.width=v+"%");
-  $("pkePowerVal").textContent=Math.round(power)+"%";
-  $("pkeSensorVal").textContent=Math.round(sensor)+"%";
-  $("pkeResponseVal").textContent=Math.round(response)+"%";
-  $("pkeStabilityVal").textContent=Math.round(stability)+"%";
-  $("pkeResponseReadout").textContent=Math.round(response)+"%";
-  $("pkeRateReadout").textContent=rate.toFixed(1)+" Hz";
-  $("pkeConn").textContent=pkeConnected?"CONNECTED":"DISCONNECTED";
-  $("pkeStatus").textContent=pkeFault?"SENSOR FAULT":pkeConnected?"NOMINAL":"STANDBY";
-  $("pkeStatus").className="value "+(pkeFault?"alert":"ok");
-  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // diagnostic pulse response live.":"PKE is offline. Connect equipment to begin simulated monitoring.";
-  syncPkeControls();
-  updateConnectionOverview();
+  const targetPower=pkeConnected?pkeOutput:0;
+  const targetSensor=pkeConnected?clamp(99-pkeOutput*.08):0;
+  const targetResponse=pkeConnected?clamp(24+pkeOutput*.55):0;
+  const targetStability=pkeConnected?clamp(100-targetResponse*.13):0;
+  const targetRate=pkeConnected?(1.4+pkeOutput*.12):0;
+  telemetry.pke.power=telemetryValue(telemetry.pke.power,targetPower,.24);
+  telemetry.pke.sensor=telemetryValue(telemetry.pke.sensor,targetSensor,.18);
+  telemetry.pke.response=telemetryValue(telemetry.pke.response,targetResponse,.2);
+  telemetry.pke.stability=telemetryValue(telemetry.pke.stability,targetStability,.16);
+  telemetry.pke.rate=drift(telemetry.pke.rate,targetRate,.2);
+  if(!pkeConnected)Object.assign(telemetry.pke,{power:0,sensor:0,response:0,stability:0,rate:0});
+  if(pkeFault){telemetry.pke.sensor=telemetryValue(telemetry.pke.sensor,38,.28);telemetry.pke.response=telemetryValue(telemetry.pke.response,94,.25);telemetry.pke.stability=telemetryValue(telemetry.pke.stability,15,.3)}
+  [["pkePowerBar",telemetry.pke.power],["pkeSensorBar",telemetry.pke.sensor],["pkeResponseBar",telemetry.pke.response],["pkeStabilityBar",telemetry.pke.stability]].forEach(([id,v])=>$(id).style.width=v+"%");
+  $("pkePowerVal").textContent=Math.round(telemetry.pke.power)+"%";$("pkeSensorVal").textContent=Math.round(telemetry.pke.sensor)+"%";
+  $("pkeResponseVal").textContent=Math.round(telemetry.pke.response)+"%";$("pkeStabilityVal").textContent=Math.round(telemetry.pke.stability)+"%";
+  $("pkeResponseReadout").textContent=Math.round(telemetry.pke.response)+"%";$("pkeRateReadout").textContent=pkeConnected?telemetry.pke.rate.toFixed(1)+" Hz":"0 Hz";
+  $("pkeConn").textContent=pkeConnected?"CONNECTED":"DISCONNECTED";$("pkeStatus").textContent=pkeFault?"SENSOR FAULT":pkeConnected?"NOMINAL":"STANDBY";$("pkeStatus").className="value "+(pkeFault?"alert":"ok");
+  $("pkeNote").textContent=pkeFault?"SIMULATION FAULT // SENSOR RESPONSE ERRATIC":pkeConnected?"PKE telemetry active // pulse response tracking output.":"PKE is offline. Connect equipment to begin simulated monitoring.";
+  syncPkeControls(); updateConnectionOverview();
 }
 $("pkeConnect").onclick=()=>{pkeConnected=true;pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
 $("pkeDisconnect").onclick=()=>{pkeConnected=false;pkeFault=false;renderPke();logEvent("PKE DISCONNECTED // SYSTEM STANDBY")};
@@ -829,10 +848,16 @@ function renderNew(){
   const goggles=newDevice==="goggles", connectedState=goggles?gogglesConnected:gigaConnected, faultState=goggles?gogglesFault:gigaFault, output=goggles?gogglesOutput:gigaOutput;
   $("newConn").textContent=connectedState?"CONNECTED":"DISCONNECTED";
   $("newStatus").textContent=faultState?"SYSTEM FAULT":connectedState?"NOMINAL":"STANDBY"; $("newStatus").className="value "+(faultState?"alert":"ok");
-  const vals=goggles?[output,Math.max(0,output-4),connectedState?92-output*.12:0,connectedState?68+output*.2:0]:[output,Math.min(100,output+8),connectedState?96-output*.1:0,connectedState?output*.92:0];
-  vals.forEach((v,i)=>{$("newBar"+(i+1)).style.width=Math.round(clamp(v))+"%";$("newVal"+(i+1)).textContent=Math.round(clamp(v))+"%"});
-  $("newNote").textContent=faultState?"SIMULATION FAULT // DIAGNOSTIC RESPONSE ERRATIC":connectedState?"Telemetry active // simulated equipment readings live.":"Equipment is offline. Connect equipment to begin simulated monitoring.";
-  syncNewControls();
+  const key=goggles?"goggles":"giga";
+  const targets=goggles?[output,clamp(output-5),clamp(94-output*.13),clamp(64+output*.24)]:[output,clamp(output+7),clamp(97-output*.12),clamp(output*.95)];
+  const names=goggles?["optical","spectral","stability","visibility"]:["power","field","stability","reading"];
+  names.forEach((name,i)=>{telemetry[key][name]=telemetryValue(telemetry[key][name],connectedState?targets[i]:0,i===2?.15:.2)});
+  if(faultState){telemetry[key].stability=telemetryValue(telemetry[key].stability,16,.3);telemetry[key][goggles?"spectral":"reading"]=telemetryValue(telemetry[key][goggles?"spectral":"reading"],94,.25)}
+  const vals=names.map(n=>telemetry[key][n]);
+  vals.forEach((v,i)=>{$("newBar"+(i+1)).style.width=Math.round(v)+"%";$('newVal'+(i+1)).textContent=Math.round(v)+"%"});
+  if(!connectedState)names.forEach(n=>telemetry[key][n]=0);
+  $("newNote").textContent=faultState?"SIMULATION FAULT // DIAGNOSTIC RESPONSE ERRATIC":connectedState?"Telemetry active // readings tracking equipment load.":"Equipment is offline. Connect equipment to begin simulated monitoring.";
+  syncNewControls(); updateConnectionOverview();
 }
 function configureNewDevice(d){
   newDevice=d; const goggles=d==="goggles";
