@@ -163,6 +163,24 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .diagnostic-modal .wave{height:94px!important}
   .diagnostic-modal .section{padding:7px!important}
 }
+
+/* v1.7 six-equipment console */
+@media(max-width:430px){
+  .menu{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}
+  .menu button{min-height:48px!important;font-size:6.5px!important}
+  .connection-grid{grid-template-columns:repeat(3,1fr)!important;gap:5px!important}
+  .connection-card{grid-template-columns:1fr!important;text-align:center;min-height:44px!important;padding:5px!important}
+  .connection-icon{display:none!important}
+  .connection-name,.connection-state{font-size:6px!important}
+}
+.connection-card{transition:background .2s,border-color .2s,box-shadow .2s}
+.connection-card .connection-state{font-weight:bold}
+.connection-card.online{background:#071307;border-color:var(--line);box-shadow:inset 0 0 10px rgba(57,169,67,.12)}
+.connection-card.online .connection-state{color:var(--line)}
+.connection-card.offline{background:var(--deep);border-color:var(--dim)}
+.connection-card.offline .connection-state{color:var(--dim)}
+.connection-card.alert{background:#160b03;border-color:var(--warn)}
+.connection-card.alert .connection-state{color:var(--warn)}
 </style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
@@ -194,19 +212,23 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   <div class="section equipment-select-panel">
     <div class="section-title">EQUIPMENT SELECT</div>
     <div class="menu">
-      <button class="device-btn selected" data-device="pack"><span class="device-icon">▣</span><span>PROTON PACK</span></button>
-      <button class="device-btn" data-device="wand"><span class="device-icon">◈</span><span>NEUTRONA WAND</span></button>
-      <button class="device-btn" data-device="pke"><span class="device-icon">⌁</span><span>PKE METRE</span></button>
-      <button class="device-btn" data-device="trap"><span class="device-icon">◇</span><span>CONTAINMENT TRAP</span></button>
+      <button class="device-btn selected" data-device="pack"><span>PROTON PACK</span></button>
+      <button class="device-btn" data-device="wand"><span>NEUTRONA WAND</span></button>
+      <button class="device-btn" data-device="pke"><span>PKE METRE</span></button>
+      <button class="device-btn" data-device="trap"><span>CONTAINMENT TRAP</span></button>
+      <button class="device-btn" data-device="goggles"><span>ECTO-GOGGLES</span></button>
+      <button class="device-btn" data-device="giga"><span>GIGA-METRE</span></button>
     </div>
   </div>
   <div class="section connection-overview">
     <div class="section-title">EQUIPMENT CONNECTION STATUS</div>
     <div class="connection-grid">
-      <div class="connection-card" data-status-device="pack"><span class="connection-icon">▣</span><span class="connection-name">PACK</span><span class="connection-state" id="overviewPack">OFFLINE</span></div>
-      <div class="connection-card" data-status-device="wand"><span class="connection-icon">◈</span><span class="connection-name">WAND</span><span class="connection-state" id="overviewWand">OFFLINE</span></div>
-      <div class="connection-card" data-status-device="pke"><span class="connection-icon">⌁</span><span class="connection-name">PKE</span><span class="connection-state" id="overviewPke">OFFLINE</span></div>
-      <div class="connection-card" data-status-device="trap"><span class="connection-icon">◇</span><span class="connection-name">TRAP</span><span class="connection-state" id="overviewTrap">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="pack"><span class="connection-name">PACK</span><span class="connection-state" id="overviewPack">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="wand"><span class="connection-name">WAND</span><span class="connection-state" id="overviewWand">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="pke"><span class="connection-name">PKE</span><span class="connection-state" id="overviewPke">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="trap"><span class="connection-name">TRAP</span><span class="connection-state" id="overviewTrap">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="goggles"><span class="connection-name">GOGGLES</span><span class="connection-state" id="overviewGoggles">OFFLINE</span></div>
+      <div class="connection-card offline" data-status-device="giga"><span class="connection-name">GIGA-METRE</span><span class="connection-state" id="overviewGiga">OFFLINE</span></div>
     </div>
   </div>
 
@@ -359,6 +381,36 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
       </div>
     </div>
 
+    <div id="newEquipmentInterface" class="hidden">
+      <div class="device">
+        <div class="panel"><div class="label">CONNECTION</div><div class="value" id="newConn">DISCONNECTED</div></div>
+        <div class="panel"><div class="label">STATUS</div><div class="value ok" id="newStatus">STANDBY</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title" id="newWaveTitle">EQUIPMENT DIAGNOSTIC TRACE</div>
+        <div class="wave-wrap"><canvas id="newWave" class="wave"></canvas><div class="wave-caption" id="newWaveCaption">LIVE EQUIPMENT TRACE</div></div>
+      </div>
+      <div class="readings">
+        <div class="panel"><div class="label" id="newRead1Label">POWER</div><div class="barrow"><span id="newRead1Name">OUTPUT</span><span class="bar"><i id="newBar1"></i></span><b id="newVal1">0%</b></div></div>
+        <div class="panel"><div class="label" id="newRead2Label">FIELD</div><div class="barrow"><span id="newRead2Name">RESPONSE</span><span class="bar"><i id="newBar2"></i></span><b id="newVal2">0%</b></div></div>
+        <div class="panel"><div class="label" id="newRead3Label">SYSTEM</div><div class="barrow"><span id="newRead3Name">STABILITY</span><span class="bar"><i id="newBar3"></i></span><b id="newVal3">0%</b></div></div>
+        <div class="panel"><div class="label" id="newRead4Label">SIGNAL</div><div class="barrow"><span id="newRead4Name">LEVEL</span><span class="bar"><i id="newBar4"></i></span><b id="newVal4">0%</b></div></div>
+      </div>
+      <div class="section">
+        <div class="section-title" id="newControlsTitle">EQUIPMENT CONTROLS</div>
+        <div class="controls">
+          <button id="newConnect">CONNECT</button>
+          <button id="newDisconnect" class="disabled">DISCONNECT</button>
+          <button id="newIncrease">INCREASE OUTPUT</button>
+          <button id="newSelfTest">RUN SELF-TEST</button>
+          <button id="newDecrease">DECREASE OUTPUT</button>
+          <button id="newFault">SIMULATE FAULT</button>
+          <button id="newCancelFault" disabled>CANCEL FAULT</button>
+        </div>
+        <p class="note" id="newNote">Equipment is offline. Connect equipment to begin simulated monitoring.</p>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-title">SYSTEM EVENT LOG</div>
       <div class="panel event-log" id="eventLog">
@@ -389,7 +441,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 <script>
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function boot(){
-  const lines=["FIELD COMPUTER INITIALISATION","EQUIPMENT BUS","PROTON PACK INTERFACE","NEUTRONA WAND INTERFACE","PKE SENSOR INTERFACE","CONTAINMENT TRAP INTERFACE","DIAGNOSTIC ENGINE"];
+  const lines=["FIELD COMPUTER INITIALISATION","EQUIPMENT BUS","PROTON PACK INTERFACE","NEUTRONA WAND INTERFACE","PKE SENSOR INTERFACE","CONTAINMENT TRAP INTERFACE","ECTO-GOGGLES INTERFACE","GIGA-METRE INTERFACE","DIAGNOSTIC ENGINE"];
   const box=document.getElementById("bootlog");
   for(let i=0;i<lines.length;i++){
     const d=document.createElement("div");d.className="bootline";d.textContent=lines[i]+" ........ OK";box.appendChild(d);
@@ -404,17 +456,19 @@ async function boot(){
 boot();
 
 
-const selfTests={pack:false,wand:false,pke:false,trap:false};
+const selfTests={pack:false,wand:false,pke:false,trap:false,goggles:false,giga:false};
 function setSelfTest(device,active){
   selfTests[device]=active;
-  const ids={pack:"packSelfTest",wand:"wandSelfTest",pke:"pkeSelfTest",trap:"trapSelfTest"};
+  const ids={pack:"packSelfTest",wand:"wandSelfTest",pke:"pkeSelfTest",trap:"trapSelfTest",goggles:"newSelfTest",giga:"newSelfTest"};
   const b=$(ids[device]);
   if(b){
     b.disabled=active || (
       device==="pack" ? !connected :
       device==="wand" ? !wandConnected :
       device==="pke" ? !pkeConnected :
-      !trapDeployed
+      device==="trap" ? !trapDeployed :
+      device==="goggles" ? !gogglesConnected :
+      !gigaConnected
     );
     b.classList.toggle("disabled",b.disabled);
     b.textContent=active?"SELF-TEST RUNNING":"RUN SELF-TEST";
@@ -427,7 +481,7 @@ function runSelfTest(device, connectedState, finish){
   let step=0;
   const steps=["POWER CHECK","SENSOR CHECK","FIELD CHECK","STABILITY CHECK","SELF-TEST COMPLETE"];
   const timer=setInterval(()=>{
-    if(device==="pack" && !connected || device==="wand" && !wandConnected || device==="pke" && !pkeConnected || device==="trap" && !trapDeployed){
+    if(device==="pack" && !connected || device==="wand" && !wandConnected || device==="pke" && !pkeConnected || device==="trap" && !trapDeployed || device==="goggles" && !gogglesConnected || device==="giga" && !gigaConnected){
       clearInterval(timer); setSelfTest(device,false); return;
     }
     logEvent(device.toUpperCase()+" // "+steps[step]);
@@ -669,7 +723,7 @@ $("pkeFault").onclick=()=>{if(pkeConnected){pkeFault=true;pkeOutput=94;renderPke
 $("pkeCancelFault").onclick=()=>{if(pkeConnected&&pkeFault){pkeFault=false;pkeOutput=58;renderPke();logEvent("FAULT CLEARED // SENSOR RESPONSE NOMINAL")}};
 $("pkeSelfTest").onclick=()=>runSelfTest("pke",pkeConnected,()=>{pkeFault=false;pkeOutput=58;renderPke();logEvent("PKE SELF-TEST PASSED")});
 
-setInterval(()=>{if(pkeConnected)renderPke()},900);
+setInterval(()=>{if(pkeConnected)renderPke();if(gogglesConnected||gigaConnected)renderNew()},900);
 
 function drawPke(){
   const d=resize(pkeCvs);pkeCtx.setTransform(d,0,0,d,0,0);pkeCtx.clearRect(0,0,pkeCvs.clientWidth,pkeCvs.clientHeight);
@@ -695,15 +749,59 @@ function drawPke(){
   pkeCtx.shadowBlur=0;
 }
 
-function draw(){drawPackWave();drawWand();drawTrap();drawPke();requestAnimationFrame(draw)}
+function drawNewWave(){const d=resize(newCvs);newCtx.setTransform(d,0,0,d,0,0);newCtx.clearRect(0,0,newCvs.clientWidth,newCvs.clientHeight);const w=newCvs.clientWidth,h=newCvs.clientHeight,mid=h/2;const goggles=newDevice==="goggles",connectedState=goggles?gogglesConnected:gigaConnected,faultState=goggles?gogglesFault:gigaFault,output=goggles?gogglesOutput:gigaOutput;newCtx.beginPath();newCtx.lineWidth=faultState?1.4:1.2;newCtx.strokeStyle=faultState?"#ff5555":goggles?"#55ccff":"#ffe36a";newCtx.shadowBlur=faultState?7:5;newCtx.shadowColor=newCtx.strokeStyle;for(let x=0;x<w;x++){let y=mid+(connectedState?Math.sin(x*.07-t*1.7)*(4+output*.13):Math.sin(x*.04+t)*1.5);if(goggles)y+=connectedState?Math.sin(x*.19+t*2.1)*(2+output*.04):0;if(faultState)y+=Math.sin(x*.24+t*5)*18+(Math.random()-.5)*38;x?newCtx.lineTo(x,y):newCtx.moveTo(x,y)}newCtx.stroke();newCtx.shadowBlur=0}
+function draw(){drawPackWave();drawWand();drawTrap();drawPke();drawNewWave();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
+let gogglesConnected=false,gogglesOutput=54,gogglesFault=false;
+let gigaConnected=false,gigaOutput=58,gigaFault=false;
+const newCvs=document.getElementById("newWave"),newCtx=newCvs.getContext("2d");
+let newDevice="goggles";
+function syncNewControls(){
+  const connectedState=newDevice==="goggles"?gogglesConnected:gigaConnected;
+  const faultState=newDevice==="goggles"?gogglesFault:gigaFault;
+  $("newConnect").disabled=connectedState||selfTests[newDevice]; $("newConnect").classList.toggle("disabled",$("newConnect").disabled);
+  $("newDisconnect").disabled=!connectedState||selfTests[newDevice]; $("newDisconnect").classList.toggle("disabled",$("newDisconnect").disabled);
+  $("newIncrease").disabled=!connectedState||faultState||selfTests[newDevice]; $("newIncrease").classList.toggle("disabled",$("newIncrease").disabled);
+  $("newDecrease").disabled=!connectedState||faultState||selfTests[newDevice]; $("newDecrease").classList.toggle("disabled",$("newDecrease").disabled);
+  $("newFault").disabled=!connectedState||faultState||selfTests[newDevice]; $("newFault").classList.toggle("disabled",$("newFault").disabled);
+  $("newCancelFault").disabled=!connectedState||!faultState||selfTests[newDevice]; $("newCancelFault").classList.toggle("disabled",$("newCancelFault").disabled);
+  setSelfTest(newDevice,selfTests[newDevice]);
+}
+function renderNew(){
+  const goggles=newDevice==="goggles", connectedState=goggles?gogglesConnected:gigaConnected, faultState=goggles?gogglesFault:gigaFault, output=goggles?gogglesOutput:gigaOutput;
+  $("newConn").textContent=connectedState?"CONNECTED":"DISCONNECTED";
+  $("newStatus").textContent=faultState?"SYSTEM FAULT":connectedState?"NOMINAL":"STANDBY"; $("newStatus").className="value "+(faultState?"alert":"ok");
+  const vals=goggles?[output,Math.max(0,output-4),connectedState?92-output*.12:0,connectedState?68+output*.2:0]:[output,Math.min(100,output+8),connectedState?96-output*.1:0,connectedState?output*.92:0];
+  vals.forEach((v,i)=>{$("newBar"+(i+1)).style.width=Math.round(clamp(v))+"%";$("newVal"+(i+1)).textContent=Math.round(clamp(v))+"%"});
+  $("newNote").textContent=faultState?"SIMULATION FAULT // DIAGNOSTIC RESPONSE ERRATIC":connectedState?"Telemetry active // simulated equipment readings live.":"Equipment is offline. Connect equipment to begin simulated monitoring.";
+  syncNewControls();
+}
+function configureNewDevice(d){
+  newDevice=d; const goggles=d==="goggles";
+  $("otherTitle").textContent=goggles?"ECTO-GOGGLES // DIAGNOSTIC":"GIGA-METRE // DIAGNOSTIC";
+  $("newWaveTitle").textContent=goggles?"OPTICAL / SPECTRAL TRACE // DIAGNOSTIC RESPONSE":"GIGA FIELD TRACE // PKe ENERGY ANALYSIS";
+  $("newWaveCaption").textContent=goggles?"LIVE SPECTRAL RESPONSE TRACE":"LIVE GIGA-METRE TRACE";
+  $("newControlsTitle").textContent=goggles?"GOGGLES CONTROLS":"GIGA-METRE CONTROLS";
+  $("newRead1Label").textContent=goggles?"OPTICAL":"POWER"; $("newRead1Name").textContent=goggles?"SYSTEM":"OUTPUT";
+  $("newRead2Label").textContent=goggles?"SPECTRAL":"FIELD"; $("newRead2Name").textContent=goggles?"RESPONSE":"INTENSITY";
+  $("newRead3Label").textContent="SYSTEM"; $("newRead3Name").textContent="STABILITY";
+  $("newRead4Label").textContent=goggles?"FIELD":"PKe"; $("newRead4Name").textContent=goggles?"VISIBILITY":"READING";
+  renderNew();
+}
+$("newConnect").onclick=()=>{if(newDevice==="goggles"){gogglesConnected=true;gogglesFault=false;gogglesOutput=54}else{gigaConnected=true;gigaFault=false;gigaOutput=58}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" CONNECTED // DIAGNOSTIC LINK ESTABLISHED")};
+$("newDisconnect").onclick=()=>{if(newDevice==="goggles")gogglesConnected=false;else gigaConnected=false;renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" DISCONNECTED // SYSTEM STANDBY")};
+$("newIncrease").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&!gogglesFault){gogglesOutput=clamp(gogglesOutput+8)}else if(newDevice==="giga"&&gigaConnected&&!gigaFault){gigaOutput=clamp(gigaOutput+8)}renderNew()};
+$("newDecrease").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&!gogglesFault){gogglesOutput=clamp(gogglesOutput-8)}else if(newDevice==="giga"&&gigaConnected&&!gigaFault){gigaOutput=clamp(gigaOutput-8)}renderNew()};
+$("newFault").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected){gogglesFault=true;gogglesOutput=94}else if(newDevice==="giga"&&gigaConnected){gigaFault=true;gigaOutput=96}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" SIMULATION FAULT")};
+$("newCancelFault").onclick=()=>{if(newDevice==="goggles"&&gogglesConnected&&gogglesFault){gogglesFault=false;gogglesOutput=54}else if(newDevice==="giga"&&gigaConnected&&gigaFault){gigaFault=false;gigaOutput=58}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" FAULT CLEARED")};
+$("newSelfTest").onclick=()=>{const state=newDevice==="goggles"?gogglesConnected:gigaConnected;runSelfTest(newDevice,state,()=>{if(newDevice==="goggles"){gogglesFault=false;gogglesOutput=54}else{gigaFault=false;gigaOutput=58}renderNew();updateConnectionOverview();logEvent(newDevice.toUpperCase()+" SELF-TEST PASSED")})};
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
 let activeOther="wand",ov=45;
 function updateConnectionOverview(){
-  const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed};
-  const labels={pack:connected?(fault?"FAULT":"CONNECTED"):"OFFLINE",wand:wandConnected?(wandFault?"FAULT":"CONNECTED"):"OFFLINE",pke:pkeConnected?(pkeFault?"FAULT":"CONNECTED"):"OFFLINE",trap:trapDeployed?(trapFault?"FAULT":"CONTAINING"):"OFFLINE"};
-  Object.keys(states).forEach(d=>{const card=document.querySelector(`[data-status-device="${d}"]`),state=$("overview"+d.charAt(0).toUpperCase()+d.slice(1));if(card){card.classList.toggle("connected",!!states[d]);card.classList.toggle("alert",labels[d]==="FAULT")}if(state)state.textContent=labels[d]});
+  const states={pack:connected,wand:wandConnected,pke:pkeConnected,trap:trapDeployed,goggles:gogglesConnected,giga:gigaConnected};
+  const labels={pack:connected?(fault?"FAULT":"ONLINE"):"OFFLINE",wand:wandConnected?(wandFault?"FAULT":"ONLINE"):"OFFLINE",pke:pkeConnected?(pkeFault?"FAULT":"ONLINE"):"OFFLINE",trap:trapDeployed?(trapFault?"FAULT":"ONLINE"):"OFFLINE",goggles:gogglesConnected?(gogglesFault?"FAULT":"ONLINE"):"OFFLINE",giga:gigaConnected?(gigaFault?"FAULT":"ONLINE"):"OFFLINE"};
+  Object.keys(states).forEach(d=>{const card=document.querySelector(`[data-status-device="${d}"]`),state=$("overview"+d.charAt(0).toUpperCase()+d.slice(1));if(card){card.classList.remove("online","offline","alert");card.classList.add(labels[d]==="FAULT"?"alert":states[d]?"online":"offline")}if(state)state.textContent=labels[d]});
 }
 function openEquipment(d){
   $("packScreen").classList.add("hidden");$("otherScreen").classList.add("hidden");
@@ -712,8 +810,9 @@ function openEquipment(d){
   $("wandInterface").classList.toggle("hidden",d!=="wand");
   $("trapInterface").classList.toggle("hidden",d!=="trap");
   $("genericEquipment").classList.toggle("hidden",d!=="pke");
-  $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d];
-  if(d==="wand") renderWand(); else if(d==="trap") renderTrap(); else renderPke();
+  $("newEquipmentInterface").classList.toggle("hidden",!(d==="goggles"||d==="giga"));
+  $("otherTitle").textContent=d==="wand"?"NEUTRONA WAND // DIAGNOSTIC":otherNames[d]||"EQUIPMENT";
+  if(d==="wand") renderWand(); else if(d==="trap") renderTrap(); else if(d==="pke") renderPke(); else configureNewDevice(d);
 }
 document.querySelectorAll("[data-device]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("[data-device]").forEach(x=>x.classList.toggle("selected",x===b));
@@ -726,7 +825,7 @@ function renderOther(){
 }
 $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
-renderWand();renderTrap();renderPke();renderPack();syncPackControls();syncPkeControls();
+renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();
 
 const themeDefaults={green:{},amber:{},c64:{},crt:{}};
 function applyTheme(theme){
