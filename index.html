@@ -220,7 +220,7 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   <div class="header">
     <div class="header-main">
       <div><h1>ECTO OS // FIELD EQUIPMENT</h1><p>LOCAL EQUIPMENT MONITORING TERMINAL</p></div>
-      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div><button id="settingsBtn">SETTINGS</button><button id="deactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
+      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div></div>
     </div>
   </div>
 
@@ -871,10 +871,9 @@ function applyTheme(theme){
   document.body.dataset.theme=theme==="green"?"":theme;
   if(theme==="custom"){const hex=localStorage.getItem("ectoCustomColour")||"#39a943"; const h=hex.replace("#",""); const n=parseInt(h,16); const r=n>>16,g=(n>>8)&255,b=n&255; const mix=(v,a)=>Math.round(v*(1-a)); document.body.style.setProperty("--custom-line",hex);document.body.style.setProperty("--custom-text",`rgb(${mix(r,.15)},${mix(g,.15)},${mix(b,.15)})`);document.body.style.setProperty("--custom-dim",`rgb(${mix(r,.45)},${mix(g,.45)},${mix(b,.45)})`);document.body.style.setProperty("--custom-bg",`rgb(${Math.floor(r*.035)},${Math.floor(g*.035)},${Math.floor(b*.035)})`);document.body.style.setProperty("--custom-deep",`rgb(${Math.floor(r*.07)},${Math.floor(g*.07)},${Math.floor(b*.07)})`);document.body.style.setProperty("--custom-panel",`rgb(${Math.floor(r*.11)},${Math.floor(g*.11)},${Math.floor(b*.11)})`)} else document.body.style.cssText=""; localStorage.setItem("ectoTheme",theme);document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));}
 const savedTheme=localStorage.getItem("ectoTheme")||"green";applyTheme(savedTheme);
-const settingsBtnEl=$("settingsBtn"),settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
+const settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
 function openSettings(){if(settingsModalEl)settingsModalEl.classList.remove("hidden");}
 function closeSettings(){if(settingsModalEl)settingsModalEl.classList.add("hidden");}
-if(settingsBtnEl)settingsBtnEl.onclick=openSettings;
 if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
 document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
 if($("customColour"))$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
@@ -882,11 +881,9 @@ if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("e
 const consoleSettingsBtnEl=$("consoleSettingsBtn"),consoleDeactivateBtnEl=$("consoleDeactivateBtn");
 if(consoleSettingsBtnEl)consoleSettingsBtnEl.onclick=openSettings;
 if(consoleDeactivateBtnEl)consoleDeactivateBtnEl.onclick=deactivateSystem;
-const deactivateBtnEl=$("deactivateBtn");
 function deactivateSystem(){sessionStorage.removeItem("ectoActivated");closeSettings();document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");if(app)app.classList.add("hidden");if(bootEl)bootEl.classList.add("hidden");if(screen){screen.style.display="flex";document.body.classList.add("inactive");}}
-if(deactivateBtnEl)deactivateBtnEl.onclick=deactivateSystem;
 // Delegated fallback keeps the two system controls reliable on touch devices.
-document.addEventListener("click",e=>{const t=e.target.closest("#settingsBtn,#settingsClose,#deactivateBtn");if(!t)return;e.preventDefault();e.stopPropagation();if(t.id==="settingsBtn")openSettings();else if(t.id==="settingsClose")closeSettings();else deactivateSystem();},true);
+document.addEventListener("click",e=>{const t=e.target.closest("#consoleSettingsBtn,#settingsClose,#consoleDeactivateBtn");if(!t)return;e.preventDefault();e.stopPropagation();if(t.id==="consoleSettingsBtn")openSettings();else if(t.id==="settingsClose")closeSettings();else deactivateSystem();},true);
 </script>
 <script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script></body>
 </html>
