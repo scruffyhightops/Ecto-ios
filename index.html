@@ -299,7 +299,6 @@ setInterval(()=>{if(connected)renderPack()},900);
 
 const cvs=$("wave"),ctx=cvs.getContext("2d");
 const wandCvs=$("wandWave"),wandCtx=wandCvs.getContext("2d");
-const oc=$("otherWave"),octx=oc.getContext("2d");
 const trapCvs=$("trapWave"),trapCtx=trapCvs.getContext("2d");
 const pkeCvs=$("pkeWave"),pkeCtx=pkeCvs.getContext("2d");
 let t=0;
@@ -495,11 +494,7 @@ function drawPke(){
   pkeCtx.shadowBlur=0;
 }
 
-function drawOther(){
-  const d2=resize(oc);octx.setTransform(d2,0,0,d2,0,0);octx.clearRect(0,0,oc.clientWidth,oc.clientHeight);octx.strokeStyle="#55ccff";octx.lineWidth=1.4;octx.shadowBlur=5;octx.shadowColor="#55ccff";octx.beginPath();
-  for(let x=0;x<oc.clientWidth;x++){const y=oc.clientHeight/2+Math.sin(x*.045+t*1.4)*18+Math.sin(x*.009+t)*8;x?octx.lineTo(x,y):octx.moveTo(x,y)}octx.stroke();octx.shadowBlur=0;
-}
-function draw(){drawPackWave();drawWand();drawTrap();drawPke();drawOther();requestAnimationFrame(draw)}
+function draw(){drawPackWave();drawWand();drawTrap();drawPke();requestAnimationFrame(draw)}
 requestAnimationFrame(draw);
 
 const otherNames={pke:"PKE METRE // DIAGNOSTIC",trap:"CONTAINMENT TRAP // DIAGNOSTIC"};
