@@ -614,13 +614,20 @@ body.interface-compact .header{padding:6px!important}
     try{sessionStorage.setItem("ectoActivated","1")}catch(err){}
     document.body.classList.remove("inactive");
     screen.style.display="none";
+
+    const bootEl=document.getElementById("boot");
+    const appEl=document.getElementById("app");
+    if(appEl) appEl.classList.add("hidden");
+    if(bootEl) bootEl.classList.remove("hidden");
+    if(typeof boot==="function") boot();
   }
 
-  let done=false;
+  let firing=false;
   function activateOnce(e){
-    if(done)return;
-    done=true;
+    if(firing)return;
+    firing=true;
     activate(e);
+    setTimeout(()=>{firing=false},300);
   }
 
   button.addEventListener("click",activateOnce,false);
