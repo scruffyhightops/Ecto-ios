@@ -597,6 +597,38 @@ body.interface-compact .header{padding:6px!important}
 </style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
+<script>
+(function(){
+  const screen=document.getElementById("activateScreen");
+  const button=document.getElementById("activateBtn");
+  if(!screen || !button)return;
+
+  function activate(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    try{sessionStorage.setItem("ectoActivated","1")}catch(err){}
+    document.body.classList.remove("inactive");
+    screen.style.display="none";
+  }
+
+  let done=false;
+  function activateOnce(e){
+    if(done)return;
+    done=true;
+    activate(e);
+  }
+
+  button.addEventListener("click",activateOnce,false);
+  button.addEventListener("pointerup",activateOnce,false);
+  button.addEventListener("touchend",activateOnce,false);
+
+  try{
+    if(sessionStorage.getItem("ectoActivated")==="1"){
+      document.body.classList.remove("inactive");
+      screen.style.display="none";
+    }
+  }catch(err){}
+})();
+</script>
 <section id="boot">
   <div class="boot-shell">
     <div class="mark">GB</div>
