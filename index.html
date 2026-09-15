@@ -1586,6 +1586,63 @@ bindSystemControl("settingsClose",closeSettings);
   window.addEventListener('load',tick);
 })();
 </script>
+<style id="v5-4-severity-bars">
+.bar i{transition:width .2s,background-color .25s,box-shadow .25s;box-sizing:border-box}
+.bar i.sev-normal{background:#39a943}
+.bar i.sev-elevated{background:#ffe45c}
+.bar i.sev-high{background:#ff9f43}
+.bar i.sev-critical{background:#ff4b4b;box-shadow:0 0 5px rgba(255,75,75,.45)}
+.bar i.sev-fault{background:#ff4b4b;box-shadow:0 0 7px rgba(255,75,75,.7);animation:ectoSeverityPulse .8s steps(2,end) infinite}
+.bar i.sev-offline{background:#2b6d35;box-shadow:none}
+@keyframes ectoSeverityPulse{50%{opacity:.45}}
+</style>
+<script id="v5-4-severity-engine">
+(function(){
+  const rules={
+    power:{badHigh:true,elevated:72,high:84,critical:94},
+    output:{badHigh:true,elevated:72,high:84,critical:94},
+    field:{badHigh:true,elevated:78,high:88,critical:96},
+    strength:{badHigh:true,elevated:78,high:88,critical:96},
+    temp:{badHigh:true,elevated:82,high:90,critical:96},
+    stability:{badHigh:false,elevated:72,high:55,critical:35},
+    contain:{badHigh:false,elevated:72,high:55,critical:35},
+    sensor:{badHigh:false,elevated:72,high:50,critical:30},
+    response:{badHigh:true,elevated:78,high:90,critical:97},
+    optical:{badHigh:true,elevated:78,high:90,critical:97},
+    spectral:{badHigh:true,elevated:82,high:91,critical:97},
+    visibility:{badHigh:false,elevated:70,high:48,critical:25},
+    entity:{badHigh:true,elevated:65,high:80,critical:92},
+    charge:{badHigh:false,elevated:45,high:25,critical:10},
+    reading:{badHigh:true,elevated:78,high:90,critical:97}
+  };
+  const keyMap={powerBar:'power',fieldBar:'field',containBar:'contain',tempBar:'temp',wandOutputBar:'output',wandFieldBar:'field',wandStabilityBar:'stability',wandTempBar:'temp',trapFieldBar:'field',trapEntityBar:'entity',trapStabilityBar:'stability',trapChargeBar:'charge',pkePowerBar:'power',pkeSensorBar:'sensor',pkeResponseBar:'response',pkeStabilityBar:'stability',newBar1:'optical',newBar2:'spectral',newBar3:'stability',newBar4:'visibility'};
+  const states={};
+  function classify(key,v,offline,fault){
+    if(offline)return 'sev-offline';
+    if(fault)return 'sev-fault';
+    const r=rules[key]||rules.power;
+    if(r.badHigh){return v>=r.critical?'sev-critical':v>=r.high?'sev-high':v>=r.elevated?'sev-elevated':'sev-normal'}
+    return v<=r.critical?'sev-critical':v<=r.high?'sev-high':v<=r.elevated?'sev-elevated':'sev-normal';
+  }
+  function equipmentState(id){
+    if(id.startsWith('wand'))return {offline:typeof wandConnected!=='undefined'&&!wandConnected,fault:typeof wandFault!=='undefined'&&wandFault};
+    if(id.startsWith('trap'))return {offline:typeof trapDeployed!=='undefined'&&!trapDeployed,fault:typeof trapFault!=='undefined'&&trapFault};
+    if(id.startsWith('pke'))return {offline:typeof pkeConnected!=='undefined'&&!pkeConnected,fault:typeof pkeFault!=='undefined'&&pkeFault};
+    if(id.startsWith('new')){const g=typeof newDevice!=='undefined'&&newDevice==='goggles';return {offline:g?!gogglesConnected:!gigaConnected,fault:g?gogglesFault:gigaFault}}
+    return {offline:typeof connected!=='undefined'&&!connected,fault:typeof fault!=='undefined'&&fault};
+  }
+  function update(){
+    Object.keys(keyMap).forEach(id=>{
+      const el=document.getElementById(id);if(!el)return;
+      const v=parseFloat(el.style.width)||0;const st=equipmentState(id);
+      const cls=classify(keyMap[id],v,st.offline,st.fault);
+      el.classList.remove('sev-normal','sev-elevated','sev-high','sev-critical','sev-fault','sev-offline');el.classList.add(cls);
+    });
+  }
+  setInterval(update,180);
+  window.addEventListener('load',update);
+})();
+</script>
 </body>
 <!-- v1.9: larger equipment tiles + robust bottom system controls -->
 </html>
