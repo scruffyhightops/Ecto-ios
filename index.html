@@ -663,7 +663,7 @@ body.interface-compact .header{padding:6px!important}
   <div class="header">
     <div class="header-main">
       <div><h1>ECTO OS // FIELD EQUIPMENT</h1><p>LOCAL EQUIPMENT MONITORING TERMINAL</p></div>
-      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
+      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
     </div>
   </div>
 
@@ -1484,8 +1484,6 @@ function renderOther(){
   $("otherBar").style.width=ov+"%";$("otherBar2").style.width=clamp(100-ov/3)+"%";
   $("otherVal").textContent=Math.round(ov)+"%";$("otherVal2").textContent=Math.round(clamp(100-ov/3))+"%";
 }
-$("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activeOther==="trap"?"CONTAINMENT READY":"ACTIVE";$("otherNote").textContent="Simulated equipment telemetry active.";renderOther()};
-$("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
 renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();updateSystemSummary();
 
 const VALID_THEMES=["green","amber","c64","crt"];
@@ -1572,6 +1570,11 @@ function deactivateSystem(){
 }
 // Header system controls: direct handlers only.
 (function(){
+  const settingsBtn=$("consoleSettingsBtn");
+  if(settingsBtn){
+    settingsBtn.type="button";
+    settingsBtn.onclick=function(e){ e.preventDefault(); openSettings(); };
+  }
   const deactivate=$("consoleDeactivateBtn");
   if(deactivate){
     deactivate.type="button";
