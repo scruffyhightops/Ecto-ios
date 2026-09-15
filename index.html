@@ -603,38 +603,7 @@ body.interface-compact .header{padding:6px!important}
 </style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
-<script>
-(function(){
-  const screen=document.getElementById("activateScreen");
-  const button=document.getElementById("activateBtn");
-  if(!screen || !button)return;
 
-  function activate(e){
-    if(e){e.preventDefault();e.stopPropagation();}
-    try{sessionStorage.setItem("ectoActivated","1")}catch(err){}
-    document.body.classList.remove("inactive");
-    screen.style.display="none";
-  }
-
-  let done=false;
-  function activateOnce(e){
-    if(done)return;
-    done=true;
-    activate(e);
-  }
-
-  button.addEventListener("click",activateOnce,false);
-  button.addEventListener("pointerup",activateOnce,false);
-  button.addEventListener("touchend",activateOnce,false);
-
-  try{
-    if(sessionStorage.getItem("ectoActivated")==="1"){
-      document.body.classList.remove("inactive");
-      screen.style.display="none";
-    }
-  }catch(err){}
-})();
-</script>
 <section id="boot">
   <div class="boot-shell">
     <div class="mark">GB</div>
@@ -1513,19 +1482,6 @@ function resetSettings(){
   applyTheme("green");
 }
 
-// Settings controls: one clean native controller.
-(function(){
-  const modal=$("settingsModal");
-  if(!modal)return;
-  modal.querySelectorAll(".theme-btn").forEach(btn=>{
-    btn.onclick=()=>applyTheme(btn.dataset.themeChoice);
-  });
-  const reset=$("resetSettings");
-  if(reset)reset.onclick=resetSettings;
-  const close=$("settingsClose");
-  if(close)close.onclick=closeSettings;
-})();
-
 function deactivateSystem(){
   try{sessionStorage.removeItem("ectoActivated")}catch(e){}
   closeSettings();
@@ -1536,20 +1492,6 @@ function deactivateSystem(){
   if(screen)screen.style.display="flex";
   document.body.classList.add("inactive");
 }
-// Header system controls: direct handlers only.
-(function(){
-  const settings=$("consoleSettingsBtn");
-  const deactivate=$("consoleDeactivateBtn");
-  if(settings){
-    settings.type="button";
-    settings.onclick=function(e){ e.preventDefault(); openSettings(); };
-  }
-  if(deactivate){
-    deactivate.type="button";
-    deactivate.onclick=function(e){ e.preventDefault(); deactivateSystem(); };
-  }
-})();
-
 </script>
 <script>
 (function(){
@@ -1800,6 +1742,138 @@ function deactivateSystem(){
   window.addEventListener('load',update);
 })();
 </script>
+
+<script>
+/*
+  ECTO OS // SYSTEM CONTROLLER
+  Single owner for Activation, Settings and Deactivate.
+  No click/pointerup/touchend duplicates.
+*/
+(function(){
+  "use strict";
+
+  const $id = id => document.getElementById(id);
+
+  const activateScreen = $id("activateScreen");
+  const activateBtn = $id("activateBtn");
+  const settingsBtn = $id("consoleSettingsBtn");
+  const deactivateBtn = $id("consoleDeactivateBtn");
+  const settingsClose = $id("settingsClose");
+  const settingsModal = $id("settingsModal");
+  const resetBtn = $id("resetSettings");
+
+  function activateSystem(e){
+    if(e) e.preventDefault();
+    try{ sessionStorage.setItem("ectoActivated","1"); }catch(err){}
+    document.body.classList.remove("inactive");
+    if(activateScreen){
+      activateScreen.style.display="none";
+      activateScreen.style.zIndex="";
+    }
+  }
+
+  function deactivateSystemClean(e){
+    if(e) e.preventDefault();
+
+    try{ sessionStorage.removeItem("ectoActivated"); }catch(err){}
+
+    if(typeof closeSettings==="function") closeSettings();
+
+    document.querySelectorAll(".diagnostic-modal").forEach(function(modal){
+      modal.classList.add("hidden");
+      modal.style.display="none";
+    });
+
+    const app=$id("app");
+    const boot=$id("boot");
+
+    if(app) app.classList.add("hidden");
+    if(boot) boot.classList.add("hidden");
+
+    document.body.classList.add("inactive");
+
+    if(activateScreen){
+      activateScreen.style.display="flex";
+      activateScreen.style.zIndex="999999";
+    }
+  }
+
+  function openSettingsClean(e){
+    if(e) e.preventDefault();
+    if(typeof openSettings==="function"){
+      openSettings();
+      return;
+    }
+    if(settingsModal){
+      settingsModal.classList.remove("hidden");
+      settingsModal.style.display="block";
+      settingsModal.setAttribute("aria-hidden","false");
+      document.body.classList.add("modal-open");
+    }
+  }
+
+  function closeSettingsClean(e){
+    if(e) e.preventDefault();
+    if(typeof closeSettings==="function"){
+      closeSettings();
+      return;
+    }
+    if(settingsModal){
+      settingsModal.classList.add("hidden");
+      settingsModal.style.display="none";
+      settingsModal.setAttribute("aria-hidden","true");
+      document.body.classList.remove("modal-open");
+    }
+  }
+
+  function resetSettingsClean(e){
+    if(e) e.preventDefault();
+    if(typeof resetSettings==="function"){
+      resetSettings();
+      return;
+    }
+    try{
+      localStorage.removeItem("ectoTheme");
+      localStorage.removeItem("ectoCustomColour");
+    }catch(err){}
+    if(typeof applyTheme==="function") applyTheme("green");
+  }
+
+  if(activateBtn) activateBtn.onclick=activateSystem;
+  if(settingsBtn){
+    settingsBtn.type="button";
+    settingsBtn.onclick=openSettingsClean;
+  }
+  if(deactivateBtn){
+    deactivateBtn.type="button";
+    deactivateBtn.onclick=deactivateSystemClean;
+  }
+  if(settingsClose) settingsClose.onclick=closeSettingsClean;
+
+  document.querySelectorAll("#settingsModal .theme-btn").forEach(function(btn){
+    btn.onclick=function(e){
+      if(e) e.preventDefault();
+      if(typeof applyTheme==="function") applyTheme(btn.dataset.themeChoice);
+    };
+  });
+
+  if(resetBtn) resetBtn.onclick=resetSettingsClean;
+
+  try{
+    if(sessionStorage.getItem("ectoActivated")==="1"){
+      document.body.classList.remove("inactive");
+      if(activateScreen) activateScreen.style.display="none";
+    }else{
+      document.body.classList.add("inactive");
+      if(activateScreen) activateScreen.style.display="flex";
+    }
+  }catch(err){
+    document.body.classList.add("inactive");
+    if(activateScreen) activateScreen.style.display="flex";
+  }
+})();
+</script>
+
 </body>
 <!-- v1.9: larger equipment tiles + robust bottom system controls -->
 </html>
