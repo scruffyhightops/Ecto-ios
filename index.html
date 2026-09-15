@@ -896,32 +896,26 @@ body.interface-compact .header{padding:6px!important}
   </div>
 </div>
 
-<div id="settingsModal" class="settings-modal hidden">
-  <div class="modal-head"><div class="section-title" style="margin:0">ECTO SETTINGS // SYSTEM // V1.9.1</div><button class="modal-close" id="settingsClose">CLOSE</button></div>
+<div id="settingsModal" class="settings-modal hidden" aria-hidden="true">
+  <div class="modal-head">
+    <div class="section-title" style="margin:0">ECTO SETTINGS // SYSTEM // V1.9.1</div>
+    <button type="button" class="modal-close" id="settingsClose">CLOSE</button>
+  </div>
 
   <div class="section">
     <div class="section-title">COLOUR THEME</div>
     <div class="theme-grid">
-      <button class="theme-btn" data-theme-choice="green">ECTO GREEN</button>
-      <button class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
-      <button class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
-      <button class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
+      <button type="button" class="theme-btn" data-theme-choice="green">ECTO GREEN</button>
+      <button type="button" class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
+      <button type="button" class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
+      <button type="button" class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">DISPLAY</div>
-    <div class="settings-row"><div><div class="settings-label">FULL SCREEN</div><div class="settings-note" id="fullscreenStatus">CHECKING DISPLAY MODE</div></div><button class="settings-action" id="fullscreenBtn">FULL SCREEN</button></div>
-    <div class="settings-row"><div><div class="settings-label">INTERFACE SIZE</div><div class="settings-note">CHOOSE NORMAL OR COMPACT CONTROLS</div></div><div class="settings-toggle"><button class="settings-choice" data-density="normal">NORMAL</button><button class="settings-choice" data-density="compact">COMPACT</button></div></div>
-    <div class="settings-row"><div><div class="settings-label">CRT EFFECTS</div><div class="settings-note">SCANLINE DISPLAY EFFECT</div></div><button class="settings-choice" id="crtEffectsBtn">OFF</button></div>
+    <div class="section-title">SYSTEM</div>
+    <button type="button" id="resetSettings">RESET SETTINGS</button>
   </div>
-
-  <div class="section">
-    <div class="section-title">SYSTEM INFORMATION</div>
-    <div class="settings-info"><div><span>ECTO OS</span><strong>V1.9.1</strong></div><div><span>INTERFACE</span><strong id="interfaceStatus">ONLINE</strong></div><div><span>LOCAL STORAGE</span><strong id="storageStatus">AVAILABLE</strong></div></div>
-  </div>
-
-  <div class="section"><div class="section-title">SYSTEM</div><button id="resetSettings">RESET SETTINGS</button></div>
 </div>
 </section>
 
@@ -1440,86 +1434,36 @@ $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activ
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
 renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();updateSystemSummary();
 
-const themeDefaults={green:{},amber:{},c64:{},crt:{}};
+const VALID_THEMES=["green","amber","c64","crt"];
 function applyTheme(theme){
-  if(!themeDefaults[theme]) theme="green";
+  if(!VALID_THEMES.includes(theme)) theme="green";
   document.body.dataset.theme=theme==="green"?"":theme;
-  localStorage.setItem("ectoTheme",theme);
-  document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));
+  try{localStorage.setItem("ectoTheme",theme)}catch(e){}
+  document.querySelectorAll("#settingsModal .theme-btn").forEach(b=>{
+    b.classList.toggle("active",b.dataset.themeChoice===theme);
+  });
 }
-const savedTheme=localStorage.getItem("ectoTheme")==="custom"?"green":(localStorage.getItem("ectoTheme")||"green");applyTheme(savedTheme);
-function applyDensity(mode){
-  mode=mode==="compact"?"compact":"normal";
-  document.body.classList.toggle("interface-compact",mode==="compact");
-  try{localStorage.setItem("ectoDensity",mode)}catch(e){}
-  document.querySelectorAll(".settings-choice[data-density]").forEach(b=>b.classList.toggle("active",b.dataset.density===mode));
-}
-function applyCrtEffects(on){
-  const enabled=!!on;
-  document.body.classList.toggle("crt-effects",enabled);
-  try{localStorage.setItem("ectoCrtEffects",enabled?"on":"off")}catch(e){}
-  const b=$("crtEffectsBtn");
-  if(b){b.textContent=enabled?"ON":"OFF";b.classList.toggle("active",enabled)}
-}
-try{applyDensity(localStorage.getItem("ectoDensity")||"normal")}catch(e){applyDensity("normal")}
-try{applyCrtEffects(localStorage.getItem("ectoCrtEffects")==="on")}catch(e){applyCrtEffects(false)}
+let savedTheme="green";
+try{
+  savedTheme=localStorage.getItem("ectoTheme")||"green";
+  if(!VALID_THEMES.includes(savedTheme)) savedTheme="green";
+}catch(e){}
+applyTheme(savedTheme);
 
-const settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
+const settingsModalEl=$("settingsModal");
 function openSettings(){
-  if(settingsModalEl){
-    settingsModalEl.classList.remove("hidden");
-    settingsModalEl.style.display="block";
-    settingsModalEl.style.pointerEvents="auto";
-    settingsModalEl.style.zIndex="200000";
-    document.body.classList.add("modal-open");
-    updateSettingsInfo();
-  }
+  if(!settingsModalEl)return;
+  settingsModalEl.classList.remove("hidden");
+  settingsModalEl.style.display="block";
+  settingsModalEl.setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
 }
 function closeSettings(){
-  if(settingsModalEl){
-    settingsModalEl.classList.add("hidden");
-    settingsModalEl.style.display="none";
-    document.body.classList.remove("modal-open");
-  }
-}
-if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
-
-function updateSettingsInfo(){
-  const fs=$("fullscreenStatus"),st=$("storageStatus");
-  const standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone===true;
-  if(fs)fs.textContent=document.fullscreenElement?"FULL SCREEN ACTIVE":standalone?"HOME SCREEN MODE ACTIVE":("fullscreen" in document?"AVAILABLE":"USE HOME SCREEN MODE");
-  if(st){try{localStorage.setItem("ectoStorageCheck","1");localStorage.removeItem("ectoStorageCheck");st.textContent="AVAILABLE"}catch(e){st.textContent="UNAVAILABLE"}}
-}
-function updateFullscreenButton(){
-  const b=$("fullscreenBtn"),fs=$("fullscreenStatus");
-  const standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone===true;
-  if(document.fullscreenElement){
-    if(b)b.textContent="EXIT FULL SCREEN";
-    if(fs)fs.textContent="FULL SCREEN ACTIVE";
-  }else if(standalone){
-    if(b)b.textContent="HOME SCREEN MODE";
-    if(fs)fs.textContent="HOME SCREEN MODE ACTIVE";
-  }else if(document.documentElement.requestFullscreen){
-    if(b)b.textContent="FULL SCREEN";
-    if(fs)fs.textContent="AVAILABLE";
-  }else{
-    if(b)b.textContent="HOME SCREEN MODE";
-    if(fs)fs.textContent="USE HOME SCREEN MODE";
-  }
-}
-async function toggleSettingsFullscreen(){
-  try{
-    if(document.fullscreenElement){
-      if(document.exitFullscreen)await document.exitFullscreen();
-    }else if(document.documentElement.requestFullscreen){
-      await document.documentElement.requestFullscreen();
-    }else{
-      const fs=$("fullscreenStatus");if(fs)fs.textContent="USE HOME SCREEN MODE";
-    }
-  }catch(e){
-    const fs=$("fullscreenStatus");if(fs)fs.textContent="USE HOME SCREEN MODE";
-  }
-  updateFullscreenButton();updateSettingsInfo();
+  if(!settingsModalEl)return;
+  settingsModalEl.classList.add("hidden");
+  settingsModalEl.style.display="none";
+  settingsModalEl.setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
 }
 function resetSettings(){
   try{
@@ -1529,45 +1473,36 @@ function resetSettings(){
     localStorage.removeItem("ectoCustomColour");
   }catch(e){}
   applyTheme("green");
-  applyDensity("normal");
-  applyCrtEffects(false);
-  updateFullscreenButton();updateSettingsInfo();
 }
 
-// One delegated handler for the entire Settings panel. This avoids the duplicate
-// click/touch bindings elsewhere in the terminal and is reliable on iPhone Safari.
-(function bindSettingsControls(){
+// Single, deliberately simple Settings controller.
+(function(){
   const modal=$("settingsModal");
   if(!modal)return;
-  let lastPointer=0;
-  function handle(target){
-    const theme=target.closest(".theme-btn[data-theme-choice]");
-    if(theme){applyTheme(theme.dataset.themeChoice);return true}
-    const density=target.closest(".settings-choice[data-density]");
-    if(density){applyDensity(density.dataset.density);return true}
-    const crt=target.closest("#crtEffectsBtn");
-    if(crt){applyCrtEffects(!document.body.classList.contains("crt-effects"));return true}
-    const full=target.closest("#fullscreenBtn");
-    if(full){toggleSettingsFullscreen();return true}
-    const reset=target.closest("#resetSettings");
-    if(reset){resetSettings();return true}
-    const close=target.closest("#settingsClose");
-    if(close){closeSettings();return true}
-    return false;
+  let lastAction=0;
+  function activate(fn,e){
+    const now=Date.now();
+    if(now-lastAction<350)return;
+    lastAction=now;
+    if(e){e.preventDefault();e.stopPropagation();}
+    fn();
   }
-  modal.addEventListener("pointerup",e=>{
-    lastPointer=Date.now();
-    if(handle(e.target)){e.preventDefault();e.stopPropagation()}
-  },true);
-  modal.addEventListener("click",e=>{
-    if(Date.now()-lastPointer<500){e.preventDefault();e.stopPropagation();return}
-    if(handle(e.target)){e.preventDefault();e.stopPropagation()}
-  },true);
+  function handle(e){
+    const target=e.target.closest("button");
+    if(!target || !modal.contains(target))return;
+    const theme=target.dataset.themeChoice;
+    if(theme){activate(()=>applyTheme(theme),e);return;}
+    if(target.id==="resetSettings"){activate(resetSettings,e);return;}
+    if(target.id==="settingsClose"){activate(closeSettings,e);return;}
+  }
+  modal.addEventListener("click",handle,false);
+  modal.addEventListener("pointerup",function(e){
+    // Pointerup is used for touch devices; the short duplicate-event guard
+    // prevents the subsequent click from running the same action twice.
+    handle(e);
+  },false);
 })();
 
-document.addEventListener("fullscreenchange",()=>{updateFullscreenButton();updateSettingsInfo()});
-updateFullscreenButton();
-updateSettingsInfo();
 function deactivateSystem(){
   try{sessionStorage.removeItem("ectoActivated")}catch(e){}
   closeSettings();
@@ -1587,40 +1522,7 @@ function bindSystemControl(id,fn){
 }
 bindSystemControl("consoleSettingsBtn",openSettings);
 bindSystemControl("consoleDeactivateBtn",deactivateSystem);
-bindSystemControl("settingsClose",closeSettings);
 
-</script>
-<script>(function(){const screen=document.getElementById("activateScreen"),a=document.getElementById("activateBtn");a.onclick=()=>{sessionStorage.setItem("ectoActivated","1");location.reload()};if(sessionStorage.getItem("ectoActivated")==="1"){document.body.classList.remove("inactive");screen.style.display="none"}})();</script><script>
-(function(){
-  function get(id){return document.getElementById(id)}
-  function showSettings(){
-    var m=get("settingsModal");
-    if(m){
-      m.classList.remove("hidden");
-      m.style.display="block";
-      m.style.pointerEvents="auto";
-      m.style.zIndex="200000";
-      document.body.classList.add("modal-open");
-    }
-  }
-  function hideSettings(){
-    var m=get("settingsModal");
-    if(m){
-      m.classList.add("hidden");
-      m.style.display="none";
-      document.body.classList.remove("modal-open");
-    }
-  }
-  function deactivate(){try{sessionStorage.removeItem("ectoActivated")}catch(e){};hideSettings();document.querySelectorAll(".diagnostic-modal").forEach(function(x){x.classList.add("hidden")});var app=get("app"),boot=get("boot"),screen=get("activateScreen");if(app)app.classList.add("hidden");if(boot)boot.classList.add("hidden");if(screen){screen.style.display="flex";screen.style.zIndex="999999"}document.body.classList.add("inactive")}
-  function bind(){
-    var s=get("consoleSettingsBtn"),d=get("consoleDeactivateBtn"),c=get("settingsClose");
-    if(s){s.onclick=showSettings;s.addEventListener("pointerup",showSettings,true);s.addEventListener("touchend",showSettings,true)}
-    if(d){d.onclick=deactivate;d.addEventListener("pointerup",deactivate,true);d.addEventListener("touchend",deactivate,true)}
-    if(c){c.onclick=hideSettings;c.addEventListener("pointerup",hideSettings,true);c.addEventListener("touchend",hideSettings,true)}
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind);else bind();
-  window.addEventListener("load",bind);
-})();
 </script>
 <script>
 (function(){
