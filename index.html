@@ -477,6 +477,124 @@ body.modal-open .header-actions .status{visibility:hidden!important}
   #precheckModal .precheck-item .state{min-width:66px!important;padding:5px 5px!important}
 }
 </style>
+
+<style id="v5-4-settings-iphone">
+/* v5.4 — Settings menu iPhone layout */
+.settings-modal{
+  box-sizing:border-box;
+  max-height:calc(100dvh - 20px);
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.settings-modal .modal-head{
+  flex:0 0 auto;
+}
+.settings-modal .theme-grid{
+  width:100%;
+}
+.settings-modal .theme-btn{
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  padding:7px 5px;
+  line-height:1.15;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.settings-modal .section{
+  width:100%;
+  box-sizing:border-box;
+}
+.settings-modal #resetSettings{
+  width:100%;
+  min-height:40px;
+}
+@media(max-width:430px){
+  .settings-modal{
+    inset:6px!important;
+    padding:8px!important;
+    max-height:calc(100dvh - 12px)!important;
+    border-radius:0;
+  }
+  .settings-modal .modal-head{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+    margin-bottom:8px!important;
+  }
+  .settings-modal .modal-head .section-title{
+    font-size:8px!important;
+    line-height:1.35!important;
+    overflow-wrap:anywhere;
+  }
+  .settings-modal .modal-close{
+    width:100%!important;
+    min-height:36px!important;
+    font-size:7px!important;
+  }
+  .settings-modal > .section-title{
+    font-size:7px!important;
+    margin-bottom:5px!important;
+  }
+  .settings-modal .theme-grid{
+    grid-template-columns:1fr 1fr!important;
+    gap:5px!important;
+  }
+  .settings-modal .theme-btn{
+    min-height:42px!important;
+    padding:6px 4px!important;
+    font-size:6px!important;
+    letter-spacing:.03em;
+  }
+  .settings-modal .section{
+    margin-top:8px!important;
+    padding:7px!important;
+  }
+  .settings-modal .section-title{
+    font-size:7px!important;
+  }
+  .settings-modal #resetSettings{
+    min-height:38px!important;
+    font-size:6.5px!important;
+  }
+}
+@media(max-width:350px){
+  .settings-modal .theme-grid{grid-template-columns:1fr!important}
+  .settings-modal .theme-btn{min-height:36px!important}
+}
+</style>
+
+
+<style id="v5-5-settings-build">
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;padding:7px 0;border-top:1px solid rgba(57,169,67,.22)}
+.settings-row:first-of-type{border-top:0;margin-top:2px}
+.settings-label{font-size:7px;letter-spacing:.08em}
+.settings-note{font-size:5.5px;color:var(--dim);margin-top:3px;line-height:1.35}
+.settings-action,.settings-choice{min-height:34px!important;padding:5px 8px!important;font-size:6px!important;white-space:nowrap}
+.settings-toggle{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:0 0 auto}
+.settings-choice.active{background:var(--line);color:var(--bg);font-weight:bold}
+.settings-info{border:1px solid var(--line);padding:7px 8px;margin-top:6px}
+.settings-info div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:6px}
+.settings-info span{color:var(--dim)}
+.settings-info strong{font-weight:bold}
+body.crt-effects::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:199999;background:repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.08) 3px);opacity:.7}
+body.interface-compact .main-console>.section{padding:6px!important;margin-top:4px!important}
+body.interface-compact .menu button{min-height:39px!important;padding:5px 4px!important}
+body.interface-compact .header{padding:6px!important}
+@media(max-width:430px){
+ .settings-row{align-items:flex-start;gap:6px;padding:8px 0}
+ .settings-label{font-size:6.5px}
+ .settings-note{font-size:5px}
+ .settings-action,.settings-choice{min-height:34px!important;font-size:5.8px!important;padding:5px 6px!important}
+ .settings-toggle{width:118px}
+ .settings-info div{font-size:5.8px}
+}
+@media(max-width:350px){
+ .settings-row{display:block}
+ .settings-action,.settings-toggle{width:100%;margin-top:6px}
+ .settings-toggle{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
@@ -779,14 +897,30 @@ body.modal-open .header-actions .status{visibility:hidden!important}
 </div>
 
 <div id="settingsModal" class="settings-modal hidden">
-  <div class="modal-head"><div class="section-title" style="margin:0">ECTO SETTINGS // DISPLAY // V1.9.1</div><button class="modal-close" id="settingsClose">CLOSE</button></div>
-  <div class="section-title">COLOUR THEME</div>
-  <div class="theme-grid">
-    <button class="theme-btn" data-theme-choice="green">ECTO GREEN</button>
-    <button class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
-    <button class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
-    <button class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
+  <div class="modal-head"><div class="section-title" style="margin:0">ECTO SETTINGS // SYSTEM // V1.9.1</div><button class="modal-close" id="settingsClose">CLOSE</button></div>
+
+  <div class="section">
+    <div class="section-title">COLOUR THEME</div>
+    <div class="theme-grid">
+      <button class="theme-btn" data-theme-choice="green">ECTO GREEN</button>
+      <button class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
+      <button class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
+      <button class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
+    </div>
   </div>
+
+  <div class="section">
+    <div class="section-title">DISPLAY</div>
+    <div class="settings-row"><div><div class="settings-label">FULL SCREEN</div><div class="settings-note" id="fullscreenStatus">CHECKING DISPLAY MODE</div></div><button class="settings-action" id="fullscreenBtn">FULL SCREEN</button></div>
+    <div class="settings-row"><div><div class="settings-label">INTERFACE SIZE</div><div class="settings-note">CHOOSE NORMAL OR COMPACT CONTROLS</div></div><div class="settings-toggle"><button class="settings-choice" data-density="normal">NORMAL</button><button class="settings-choice" data-density="compact">COMPACT</button></div></div>
+    <div class="settings-row"><div><div class="settings-label">CRT EFFECTS</div><div class="settings-note">SCANLINE DISPLAY EFFECT</div></div><button class="settings-choice" id="crtEffectsBtn">OFF</button></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">SYSTEM INFORMATION</div>
+    <div class="settings-info"><div><span>ECTO OS</span><strong>V1.9.1</strong></div><div><span>INTERFACE</span><strong id="interfaceStatus">ONLINE</strong></div><div><span>LOCAL STORAGE</span><strong id="storageStatus">AVAILABLE</strong></div></div>
+  </div>
+
   <div class="section"><div class="section-title">SYSTEM</div><button id="resetSettings">RESET SETTINGS</button></div>
 </div>
 </section>
@@ -1310,11 +1444,24 @@ const themeDefaults={green:{},amber:{},c64:{},crt:{}};
 function applyTheme(theme){
   if(!themeDefaults[theme]) theme="green";
   document.body.dataset.theme=theme==="green"?"":theme;
-  document.body.style.cssText="";
   localStorage.setItem("ectoTheme",theme);
   document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));
 }
 const savedTheme=localStorage.getItem("ectoTheme")==="custom"?"green":(localStorage.getItem("ectoTheme")||"green");applyTheme(savedTheme);
+function applyDensity(mode){
+  mode=mode==="compact"?"compact":"normal";
+  document.body.classList.toggle("interface-compact",mode==="compact");
+  localStorage.setItem("ectoDensity",mode);
+  document.querySelectorAll(".settings-choice[data-density]").forEach(b=>b.classList.toggle("active",b.dataset.density===mode));
+}
+function applyCrtEffects(on){
+  const enabled=!!on;
+  document.body.classList.toggle("crt-effects",enabled);
+  localStorage.setItem("ectoCrtEffects",enabled?"on":"off");
+  const b=$("crtEffectsBtn"); if(b){b.textContent=enabled?"ON":"OFF";b.classList.toggle("active",enabled)}
+}
+applyDensity(localStorage.getItem("ectoDensity")||"normal");
+applyCrtEffects(localStorage.getItem("ectoCrtEffects")==="on");
 const settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
 function openSettings(){
   if(settingsModalEl){
@@ -1332,8 +1479,25 @@ function closeSettings(){
 }
 if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
 document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
-if($("customColour"))$("customColour").oninput=e=>{localStorage.setItem("ectoCustomColour",e.target.value);applyTheme("custom")};
-if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoCustomColour");$("customColour").value="#39a943";applyTheme("green")};
+document.querySelectorAll(".settings-choice[data-density]").forEach(b=>b.onclick=()=>applyDensity(b.dataset.density));
+if($("crtEffectsBtn"))$("crtEffectsBtn").onclick=()=>applyCrtEffects(!document.body.classList.contains("crt-effects"));
+function updateSettingsInfo(){
+  const fs=$("fullscreenStatus");
+  if(fs) fs.textContent=document.fullscreenElement?"FULL SCREEN ACTIVE":("fullscreen" in document?"AVAILABLE":"USE HOME SCREEN MODE");
+  const st=$("storageStatus");
+  if(st){try{localStorage.setItem("ectoStorageCheck","1");localStorage.removeItem("ectoStorageCheck");st.textContent="AVAILABLE"}catch(e){st.textContent="UNAVAILABLE"}}
+}
+if($("fullscreenBtn"))$("fullscreenBtn").onclick=async()=>{
+  try{
+    if(document.fullscreenElement){await document.exitFullscreen()}
+    else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen()}
+    else {const fs=$("fullscreenStatus");if(fs)fs.textContent="NOT SUPPORTED — USE HOME SCREEN MODE";return}
+  }catch(e){const fs=$("fullscreenStatus");if(fs)fs.textContent="NOT AVAILABLE — USE HOME SCREEN MODE"}
+  updateSettingsInfo();
+};
+document.addEventListener("fullscreenchange",updateSettingsInfo);
+if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoDensity");localStorage.removeItem("ectoCrtEffects");applyTheme("green");applyDensity("normal");applyCrtEffects(false);updateSettingsInfo()};
+updateSettingsInfo();
 function deactivateSystem(){
   try{sessionStorage.removeItem("ectoActivated")}catch(e){}
   closeSettings();
