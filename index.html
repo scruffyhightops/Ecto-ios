@@ -410,6 +410,53 @@ body.modal-open .header-actions .status{visibility:hidden!important}
   pointer-events:auto!important;
 }
 </style>
+
+<style id="v536-preflight-refinement">
+#precheckModal .preflight-status-strip b{
+  min-width:90px;
+  text-align:right;
+}
+#precheckModal .precheck-item .state{
+  min-width:72px!important;
+  font-weight:700;
+  letter-spacing:.04em;
+}
+#precheckModal .precheck-item.ready .state{
+  background:rgba(57,169,67,.10)!important;
+}
+#precheckModal .precheck-item.attention .state{
+  background:rgba(255,228,92,.08)!important;
+}
+#precheckModal .precheck-item.fault .state{
+  background:rgba(255,107,107,.08)!important;
+}
+#precheckModal .precheck-result{
+  text-align:center!important;
+  border:1px solid var(--dim)!important;
+}
+#precheckModal .precheck-result.ready{
+  color:var(--line)!important;
+  border-color:var(--line)!important;
+}
+#precheckModal .precheck-result.attention{
+  color:#ffe45c!important;
+  border-color:#ffe45c!important;
+}
+#precheckModal .precheck-result.fault{
+  color:#ff6b6b!important;
+  border-color:#ff6b6b!important;
+}
+#precheckModal .preflight-legend span{font-weight:700}
+@media(max-width:430px){
+  #precheckModal .preflight-status-strip b{
+    min-width:0;
+    font-size:8px!important;
+  }
+  #precheckModal .precheck-item .state{
+    min-width:66px!important;
+  }
+}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
