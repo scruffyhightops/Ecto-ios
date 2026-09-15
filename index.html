@@ -457,6 +457,19 @@ body.modal-open .header-actions .status{visibility:hidden!important}
   }
 }
 </style>
+
+<style id="v537-preflight-polish">
+/* v5.3.7 — final pre-flight interaction polish */
+#precheckModal .precheck-item{transition:none!important}
+#precheckModal .precheck-item .state{white-space:nowrap!important}
+#precheckModal .precheck-result{min-height:38px;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+#precheckModal .precheck-note{min-height:20px;display:flex;align-items:center;justify-content:center}
+@media(max-width:430px){
+  #precheckModal .precheck-item{padding:7px 8px!important}
+  #precheckModal .precheck-name{letter-spacing:.035em!important}
+  #precheckModal .precheck-item .state{min-width:66px!important;padding:5px 5px!important}
+}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <section id="boot">
