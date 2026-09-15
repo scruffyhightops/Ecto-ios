@@ -1487,16 +1487,50 @@ function updateSettingsInfo(){
   const st=$("storageStatus");
   if(st){try{localStorage.setItem("ectoStorageCheck","1");localStorage.removeItem("ectoStorageCheck");st.textContent="AVAILABLE"}catch(e){st.textContent="UNAVAILABLE"}}
 }
+function updateFullscreenButton(){
+  const b=$("fullscreenBtn"),fs=$("fullscreenStatus");
+  const standalone=window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+  if(document.fullscreenElement){
+    if(b)b.textContent="EXIT FULL SCREEN";
+    if(fs)fs.textContent="FULL SCREEN ACTIVE";
+  }else if(standalone){
+    if(b)b.textContent="HOME SCREEN MODE";
+    if(fs)fs.textContent="HOME SCREEN MODE ACTIVE";
+  }else if(document.documentElement.requestFullscreen){
+    if(b)b.textContent="FULL SCREEN";
+    if(fs)fs.textContent="AVAILABLE";
+  }else{
+    if(b)b.textContent="HOME SCREEN MODE";
+    if(fs)fs.textContent="USE HOME SCREEN MODE";
+  }
+}
 if($("fullscreenBtn"))$("fullscreenBtn").onclick=async()=>{
   try{
-    if(document.fullscreenElement){await document.exitFullscreen()}
-    else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen()}
-    else {const fs=$("fullscreenStatus");if(fs)fs.textContent="NOT SUPPORTED — USE HOME SCREEN MODE";return}
-  }catch(e){const fs=$("fullscreenStatus");if(fs)fs.textContent="NOT AVAILABLE — USE HOME SCREEN MODE"}
+    if(document.fullscreenElement){
+      if(document.exitFullscreen)await document.exitFullscreen();
+    }else if(document.documentElement.requestFullscreen){
+      await document.documentElement.requestFullscreen();
+    }else{
+      const fs=$("fullscreenStatus");if(fs)fs.textContent="USE HOME SCREEN MODE";
+    }
+  }catch(e){
+    const fs=$("fullscreenStatus");if(fs)fs.textContent="USE HOME SCREEN MODE";
+  }
+  updateFullscreenButton();
   updateSettingsInfo();
 };
-document.addEventListener("fullscreenchange",updateSettingsInfo);
-if($("resetSettings"))$("resetSettings").onclick=()=>{localStorage.removeItem("ectoTheme");localStorage.removeItem("ectoDensity");localStorage.removeItem("ectoCrtEffects");applyTheme("green");applyDensity("normal");applyCrtEffects(false);updateSettingsInfo()};
+document.addEventListener("fullscreenchange",()=>{updateFullscreenButton();updateSettingsInfo()});
+if($("resetSettings"))$("resetSettings").onclick=()=>{
+  localStorage.removeItem("ectoTheme");
+  localStorage.removeItem("ectoDensity");
+  localStorage.removeItem("ectoCrtEffects");
+  applyTheme("green");
+  applyDensity("normal");
+  applyCrtEffects(false);
+  updateFullscreenButton();
+  updateSettingsInfo();
+};
+updateFullscreenButton();
 updateSettingsInfo();
 function deactivateSystem(){
   try{sessionStorage.removeItem("ectoActivated")}catch(e){}
