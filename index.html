@@ -91,14 +91,11 @@ button:disabled{opacity:.38!important;filter:saturate(.45)!important;cursor:not-
 .settings-modal{position:fixed;inset:10px;z-index:3000;pointer-events:auto;overflow:auto;margin:0;background:var(--bg);border:1px solid var(--line);padding:12px;box-shadow:0 0 35px rgba(0,0,0,.65)}
 .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .theme-btn.active{background:var(--line);color:var(--bg);font-weight:bold}
-.custom-colour{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;margin-top:10px}
-.custom-colour input{width:90px;height:42px;padding:2px;background:var(--deep);border:1px solid var(--line)}
 .deactivate-btn{border-color:var(--warn);color:var(--warn)}
 @media(max-width:430px){.diagnostic-modal,.settings-modal{inset:6px}.header-actions button{font-size:5.5px;padding:5px 5px;min-height:28px}.header-actions{gap:3px}.header-actions .status{font-size:6px;padding:5px 5px}}
 body[data-theme="amber"]{--bg:#090602;--deep:#120b03;--panel:#1a0e03;--line:#ffb000;--text:#ffe3a1;--dim:#b68a45}
 body[data-theme="c64"]{--bg:#03030b;--deep:#07071a;--panel:#0b0b24;--line:#6f7cff;--text:#b9c2ff;--dim:#7279b5}
 body[data-theme="crt"]{--bg:#050500;--deep:#0b0b00;--panel:#121200;--line:#d7d24a;--text:#f0ed9a;--dim:#aaa74f}
-body[data-theme="custom"]{--line:var(--custom-line);--text:var(--custom-text);--dim:var(--custom-dim);--bg:var(--custom-bg);--deep:var(--custom-deep);--panel:var(--custom-panel)}
 
 /* v4.5 telemetry polish */
 .telemetry-alert{font-weight:700;letter-spacing:.04em}
@@ -161,8 +158,6 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .settings-modal .section{margin-top:6px!important;padding:7px!important}
   .theme-grid{gap:5px!important}
   .theme-grid button{min-height:34px!important;padding:5px!important;font-size:6px!important}
-  .custom-colour{grid-template-columns:1fr 65px!important;gap:5px!important}
-  .custom-colour input{width:65px!important;height:34px!important}
 }
 </style>
 
@@ -791,11 +786,6 @@ body.modal-open .header-actions .status{visibility:hidden!important}
     <button class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
     <button class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
     <button class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
-    <button class="theme-btn" data-theme-choice="custom">CUSTOM</button>
-  </div>
-  <div class="section" id="customColourPanel" style="margin-top:9px">
-    <div class="section-title">CUSTOM COLOUR</div>
-    <div class="custom-colour"><div class="note">Select a base colour for the terminal interface.</div><input id="customColour" type="color" value="#39a943" aria-label="Custom interface colour"></div>
   </div>
   <div class="section"><div class="section-title">SYSTEM</div><button id="resetSettings">RESET SETTINGS</button></div>
 </div>
@@ -1318,9 +1308,13 @@ renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles")
 
 const themeDefaults={green:{},amber:{},c64:{},crt:{}};
 function applyTheme(theme){
+  if(!themeDefaults[theme]) theme="green";
   document.body.dataset.theme=theme==="green"?"":theme;
-  if(theme==="custom"){const hex=localStorage.getItem("ectoCustomColour")||"#39a943"; const h=hex.replace("#",""); const n=parseInt(h,16); const r=n>>16,g=(n>>8)&255,b=n&255; const mix=(v,a)=>Math.round(v*(1-a)); document.body.style.setProperty("--custom-line",hex);document.body.style.setProperty("--custom-text",`rgb(${mix(r,.15)},${mix(g,.15)},${mix(b,.15)})`);document.body.style.setProperty("--custom-dim",`rgb(${mix(r,.45)},${mix(g,.45)},${mix(b,.45)})`);document.body.style.setProperty("--custom-bg",`rgb(${Math.floor(r*.035)},${Math.floor(g*.035)},${Math.floor(b*.035)})`);document.body.style.setProperty("--custom-deep",`rgb(${Math.floor(r*.07)},${Math.floor(g*.07)},${Math.floor(b*.07)})`);document.body.style.setProperty("--custom-panel",`rgb(${Math.floor(r*.11)},${Math.floor(g*.11)},${Math.floor(b*.11)})`)} else document.body.style.cssText=""; localStorage.setItem("ectoTheme",theme);document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));}
-const savedTheme=localStorage.getItem("ectoTheme")||"green";applyTheme(savedTheme);
+  document.body.style.cssText="";
+  localStorage.setItem("ectoTheme",theme);
+  document.querySelectorAll(".theme-btn").forEach(b=>b.classList.toggle("active",b.dataset.themeChoice===theme));
+}
+const savedTheme=localStorage.getItem("ectoTheme")==="custom"?"green":(localStorage.getItem("ectoTheme")||"green");applyTheme(savedTheme);
 const settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
 function openSettings(){
   if(settingsModalEl){
