@@ -595,6 +595,12 @@ body.interface-compact .header{padding:6px!important}
  .settings-toggle{grid-template-columns:1fr 1fr}
 }
 </style>
+<style id="v5-4-system-control-safety">
+/* Keep the two top-level system controls physically clickable on compact touch layouts. */
+.header{position:relative!important;z-index:9998!important}
+.header-actions{position:relative!important;z-index:9999!important;pointer-events:auto!important}
+#consoleSettingsBtn,#consoleDeactivateBtn{position:relative!important;z-index:10000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
+</style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <script>
@@ -1507,32 +1513,17 @@ function resetSettings(){
   applyTheme("green");
 }
 
-// Single, deliberately simple Settings controller.
+// Settings controls: one clean native controller.
 (function(){
   const modal=$("settingsModal");
   if(!modal)return;
-  let lastAction=0;
-  function activate(fn,e){
-    const now=Date.now();
-    if(now-lastAction<350)return;
-    lastAction=now;
-    if(e){e.preventDefault();e.stopPropagation();}
-    fn();
-  }
-  function handle(e){
-    const target=e.target.closest("button");
-    if(!target || !modal.contains(target))return;
-    const theme=target.dataset.themeChoice;
-    if(theme){activate(()=>applyTheme(theme),e);return;}
-    if(target.id==="resetSettings"){activate(resetSettings,e);return;}
-    if(target.id==="settingsClose"){activate(closeSettings,e);return;}
-  }
-  modal.addEventListener("click",handle,false);
-  modal.addEventListener("pointerup",function(e){
-    // Pointerup is used for touch devices; the short duplicate-event guard
-    // prevents the subsequent click from running the same action twice.
-    handle(e);
-  },false);
+  modal.querySelectorAll(".theme-btn").forEach(btn=>{
+    btn.onclick=()=>applyTheme(btn.dataset.themeChoice);
+  });
+  const reset=$("resetSettings");
+  if(reset)reset.onclick=resetSettings;
+  const close=$("settingsClose");
+  if(close)close.onclick=closeSettings;
 })();
 
 function deactivateSystem(){
@@ -1545,15 +1536,19 @@ function deactivateSystem(){
   if(screen)screen.style.display="flex";
   document.body.classList.add("inactive");
 }
-function bindSystemControl(id,fn){
-  const el=$(id);
-  if(!el)return;
-  el.onclick=null;
-  el.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();fn()},false);
-  el.addEventListener("touchend",e=>{e.preventDefault();e.stopPropagation();fn()},false);
-}
-bindSystemControl("consoleSettingsBtn",openSettings);
-bindSystemControl("consoleDeactivateBtn",deactivateSystem);
+// Header system controls: direct handlers only.
+(function(){
+  const settings=$("consoleSettingsBtn");
+  const deactivate=$("consoleDeactivateBtn");
+  if(settings){
+    settings.type="button";
+    settings.onclick=function(e){ e.preventDefault(); openSettings(); };
+  }
+  if(deactivate){
+    deactivate.type="button";
+    deactivate.onclick=function(e){ e.preventDefault(); deactivateSystem(); };
+  }
+})();
 
 </script>
 <script>
