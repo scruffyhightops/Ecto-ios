@@ -1451,23 +1451,28 @@ const savedTheme=localStorage.getItem("ectoTheme")==="custom"?"green":(localStor
 function applyDensity(mode){
   mode=mode==="compact"?"compact":"normal";
   document.body.classList.toggle("interface-compact",mode==="compact");
-  localStorage.setItem("ectoDensity",mode);
+  try{localStorage.setItem("ectoDensity",mode)}catch(e){}
   document.querySelectorAll(".settings-choice[data-density]").forEach(b=>b.classList.toggle("active",b.dataset.density===mode));
 }
 function applyCrtEffects(on){
   const enabled=!!on;
   document.body.classList.toggle("crt-effects",enabled);
-  localStorage.setItem("ectoCrtEffects",enabled?"on":"off");
-  const b=$("crtEffectsBtn"); if(b){b.textContent=enabled?"ON":"OFF";b.classList.toggle("active",enabled)}
+  try{localStorage.setItem("ectoCrtEffects",enabled?"on":"off")}catch(e){}
+  const b=$("crtEffectsBtn");
+  if(b){b.textContent=enabled?"ON":"OFF";b.classList.toggle("active",enabled)}
 }
-applyDensity(localStorage.getItem("ectoDensity")||"normal");
-applyCrtEffects(localStorage.getItem("ectoCrtEffects")==="on");
+try{applyDensity(localStorage.getItem("ectoDensity")||"normal")}catch(e){applyDensity("normal")}
+try{applyCrtEffects(localStorage.getItem("ectoCrtEffects")==="on")}catch(e){applyCrtEffects(false)}
+
 const settingsCloseEl=$("settingsClose"),settingsModalEl=$("settingsModal");
 function openSettings(){
   if(settingsModalEl){
     settingsModalEl.classList.remove("hidden");
     settingsModalEl.style.display="block";
+    settingsModalEl.style.pointerEvents="auto";
+    settingsModalEl.style.zIndex="200000";
     document.body.classList.add("modal-open");
+    updateSettingsInfo();
   }
 }
 function closeSettings(){
@@ -1478,18 +1483,16 @@ function closeSettings(){
   }
 }
 if(settingsCloseEl)settingsCloseEl.onclick=closeSettings;
-document.querySelectorAll(".theme-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
-document.querySelectorAll(".settings-choice[data-density]").forEach(b=>b.onclick=()=>applyDensity(b.dataset.density));
-if($("crtEffectsBtn"))$("crtEffectsBtn").onclick=()=>applyCrtEffects(!document.body.classList.contains("crt-effects"));
+
 function updateSettingsInfo(){
-  const fs=$("fullscreenStatus");
-  if(fs) fs.textContent=document.fullscreenElement?"FULL SCREEN ACTIVE":("fullscreen" in document?"AVAILABLE":"USE HOME SCREEN MODE");
-  const st=$("storageStatus");
+  const fs=$("fullscreenStatus"),st=$("storageStatus");
+  const standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone===true;
+  if(fs)fs.textContent=document.fullscreenElement?"FULL SCREEN ACTIVE":standalone?"HOME SCREEN MODE ACTIVE":("fullscreen" in document?"AVAILABLE":"USE HOME SCREEN MODE");
   if(st){try{localStorage.setItem("ectoStorageCheck","1");localStorage.removeItem("ectoStorageCheck");st.textContent="AVAILABLE"}catch(e){st.textContent="UNAVAILABLE"}}
 }
 function updateFullscreenButton(){
   const b=$("fullscreenBtn"),fs=$("fullscreenStatus");
-  const standalone=window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+  const standalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone===true;
   if(document.fullscreenElement){
     if(b)b.textContent="EXIT FULL SCREEN";
     if(fs)fs.textContent="FULL SCREEN ACTIVE";
@@ -1504,7 +1507,7 @@ function updateFullscreenButton(){
     if(fs)fs.textContent="USE HOME SCREEN MODE";
   }
 }
-if($("fullscreenBtn"))$("fullscreenBtn").onclick=async()=>{
+async function toggleSettingsFullscreen(){
   try{
     if(document.fullscreenElement){
       if(document.exitFullscreen)await document.exitFullscreen();
@@ -1516,20 +1519,53 @@ if($("fullscreenBtn"))$("fullscreenBtn").onclick=async()=>{
   }catch(e){
     const fs=$("fullscreenStatus");if(fs)fs.textContent="USE HOME SCREEN MODE";
   }
-  updateFullscreenButton();
-  updateSettingsInfo();
-};
-document.addEventListener("fullscreenchange",()=>{updateFullscreenButton();updateSettingsInfo()});
-if($("resetSettings"))$("resetSettings").onclick=()=>{
-  localStorage.removeItem("ectoTheme");
-  localStorage.removeItem("ectoDensity");
-  localStorage.removeItem("ectoCrtEffects");
+  updateFullscreenButton();updateSettingsInfo();
+}
+function resetSettings(){
+  try{
+    localStorage.removeItem("ectoTheme");
+    localStorage.removeItem("ectoDensity");
+    localStorage.removeItem("ectoCrtEffects");
+    localStorage.removeItem("ectoCustomColour");
+  }catch(e){}
   applyTheme("green");
   applyDensity("normal");
   applyCrtEffects(false);
-  updateFullscreenButton();
-  updateSettingsInfo();
-};
+  updateFullscreenButton();updateSettingsInfo();
+}
+
+// One delegated handler for the entire Settings panel. This avoids the duplicate
+// click/touch bindings elsewhere in the terminal and is reliable on iPhone Safari.
+(function bindSettingsControls(){
+  const modal=$("settingsModal");
+  if(!modal)return;
+  let lastPointer=0;
+  function handle(target){
+    const theme=target.closest(".theme-btn[data-theme-choice]");
+    if(theme){applyTheme(theme.dataset.themeChoice);return true}
+    const density=target.closest(".settings-choice[data-density]");
+    if(density){applyDensity(density.dataset.density);return true}
+    const crt=target.closest("#crtEffectsBtn");
+    if(crt){applyCrtEffects(!document.body.classList.contains("crt-effects"));return true}
+    const full=target.closest("#fullscreenBtn");
+    if(full){toggleSettingsFullscreen();return true}
+    const reset=target.closest("#resetSettings");
+    if(reset){resetSettings();return true}
+    const close=target.closest("#settingsClose");
+    if(close){closeSettings();return true}
+    return false;
+  }
+  modal.addEventListener("pointerup",e=>{
+    lastPointer=Date.now();
+    if(handle(e.target)){e.preventDefault();e.stopPropagation()}
+  },true);
+  modal.addEventListener("click",e=>{
+    if(Date.now()-lastPointer<500){e.preventDefault();e.stopPropagation();return}
+    if(handle(e.target)){e.preventDefault();e.stopPropagation()}
+  },true);
+})();
+
+document.addEventListener("fullscreenchange",()=>{updateFullscreenButton();updateSettingsInfo()});
 updateFullscreenButton();
 updateSettingsInfo();
 function deactivateSystem(){
