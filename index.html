@@ -45,6 +45,18 @@ button:active{background:#0b2410;box-shadow:inset 0 0 14px rgba(57,169,67,.2)}
 .barrow{display:grid;grid-template-columns:105px 1fr 38px;gap:6px;align-items:center;margin:8px 0;font-size:8px}
 .bar{height:10px;border:1px solid var(--line);padding:2px}
 .bar i{display:block;height:100%;width:50%;background:var(--line);transition:width .2s}
+/* 5.4 diagnostic severity bars */
+.bar i{transition:width .22s ease,background-color .18s ease,box-shadow .18s ease; background:var(--line)}
+.bar i.severity-normal{background:#39a943;box-shadow:0 0 5px rgba(57,169,67,.28)}
+.bar i.severity-elevated{background:#e6c229;box-shadow:0 0 6px rgba(230,194,41,.32)}
+.bar i.severity-high{background:#e88b22;box-shadow:0 0 7px rgba(232,139,34,.36)}
+.bar i.severity-critical{background:#d83a32;box-shadow:0 0 9px rgba(216,58,50,.45);animation:severityPulse .72s ease-in-out infinite}
+.bar i.severity-fault{background:#ff3030;box-shadow:0 0 11px rgba(255,48,48,.62);animation:severityFault .42s steps(2,end) infinite}
+.bar i.severity-offline{background:var(--dim);box-shadow:none}
+@keyframes severityPulse{0%,100%{opacity:.82}50%{opacity:1}}
+@keyframes severityFault{0%,100%{opacity:.62;filter:none}50%{opacity:1;filter:brightness(1.35)}}
+@media(prefers-reduced-motion:reduce){.bar i.severity-critical,.bar i.severity-fault{animation:none}}
+
 .wave{height:150px;width:100%;display:block;border:1px solid var(--line);background:#020702;box-shadow:inset 0 0 18px rgba(57,169,67,.08)}
 .wave-wrap{position:relative}
 .wave-wrap:before{content:"";position:absolute;inset:1px;pointer-events:none;background-image:linear-gradient(rgba(57,169,67,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(57,169,67,.13) 1px,transparent 1px);background-size:24px 24px;opacity:.75}
@@ -1525,6 +1537,53 @@ bindSystemControl("settingsClose",closeSettings);
     if(now!==last){last=now;window.__ectoFieldMode={"STANDBY":"standby","DIAGNOSTIC":"diagnostic","FIELD OPERATION":"field","CONTAINMENT":"containment"}[now]||"standby";window.dispatchEvent(new Event("ecto-field-mode-changed"));}
   },250);
   window.__ectoFieldMode="standby";
+})();
+</script>
+<script>
+(function(){
+  // 5.4: colour diagnostic bars by operational severity.
+  const barRules={
+    powerBar:{mode:"high"},fieldBar:{mode:"high"},containBar:{mode:"low"},tempBar:{mode:"high"},
+    wandOutputBar:{mode:"high"},wandFieldBar:{mode:"high"},wandStabilityBar:{mode:"low"},wandTempBar:{mode:"high"},
+    trapFieldBar:{mode:"high"},trapEntityBar:{mode:"high"},trapStabilityBar:{mode:"low"},trapChargeBar:{mode:"low"},
+    pkePowerBar:{mode:"high"},pkeSensorBar:{mode:"low"},pkeResponseBar:{mode:"high"},pkeStabilityBar:{mode:"low"},
+    newBar1:{mode:"high"},newBar2:{mode:"high"},newBar3:{mode:"low"},newBar4:{mode:"high"}
+  };
+  const faultFor={
+    powerBar:"fault",fieldBar:"fault",containBar:"fault",tempBar:"fault",
+    wandOutputBar:"wandFault",wandFieldBar:"wandFault",wandStabilityBar:"wandFault",wandTempBar:"wandFault",
+    trapFieldBar:"trapFault",trapEntityBar:"trapFault",trapStabilityBar:"trapFault",trapChargeBar:"trapFault",
+    pkePowerBar:"pkeFault",pkeSensorBar:"pkeFault",pkeResponseBar:"pkeFault",pkeStabilityBar:"pkeFault"
+  };
+  function value(id){const e=document.getElementById(id);return e?parseFloat(String(e.parentElement.parentElement.querySelector('b')?.textContent||'').replace(/[^0-9.-]/g,'')):0}
+  function severity(v,mode){
+    v=Math.max(0,Math.min(100,Number(v)||0));
+    if(mode==='low'){if(v<=20)return 'critical';if(v<=38)return 'high';if(v<=60)return 'elevated';return 'normal'}
+    if(v>=92)return 'critical';if(v>=78)return 'high';if(v>=60)return 'elevated';return 'normal';
+  }
+  function apply(id, v, forcedFault){
+    const bar=document.getElementById(id);if(!bar)return;
+    bar.classList.remove('severity-normal','severity-elevated','severity-high','severity-critical','severity-fault','severity-offline');
+    if(v<=0.5){bar.classList.add('severity-offline');return}
+    bar.classList.add('severity-'+(forcedFault?'fault':severity(v,barRules[id]?.mode||'high')));
+  }
+  function tick(){
+    Object.keys(barRules).forEach(id=>{
+      const bar=document.getElementById(id);if(!bar)return;
+      const width=parseFloat(bar.style.width)||0;
+      let forced=false;
+      const faultName=faultFor[id];
+      if(faultName && typeof window[faultName] !== 'undefined') forced=!!window[faultName];
+      if(id.startsWith('newBar')){
+        const goggles=typeof newDevice!=='undefined' && newDevice==='goggles';
+        forced=!!(goggles?gogglesFault:gigaFault);
+      }
+      if(id==='powerBar' && typeof fault!=='undefined') forced=!!fault;
+      apply(id,width,forced);
+    });
+  }
+  setInterval(tick,120);
+  window.addEventListener('load',tick);
 })();
 </script>
 </body>
