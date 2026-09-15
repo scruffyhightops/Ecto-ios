@@ -958,6 +958,15 @@ body.interface-compact .header{padding:6px!important}
   </div>
 
   <div class="section">
+    <div class="section-title">SOUND EFFECTS</div>
+    <div class="theme-grid">
+      <button type="button" class="theme-btn audio-btn" data-audio-choice="on">SOUND: ON</button>
+      <button type="button" class="theme-btn audio-btn" data-audio-choice="off">SOUND: OFF</button>
+    </div>
+    <div class="note" style="margin-top:6px">Boot tones, equipment feedback &amp; ambient hum. Off by default.</div>
+  </div>
+
+  <div class="section">
     <div class="section-title">SYSTEM</div>
     <button type="button" id="resetSettings">RESET SETTINGS</button>
   </div>
@@ -1495,6 +1504,19 @@ try{
 }catch(e){}
 applyTheme(savedTheme);
 
+function applyAudioSetting(choice){
+  const on=choice==="on";
+  if(window.EctoAudio) window.EctoAudio.setEnabled(on);
+  else { try{localStorage.setItem("ectoAudioEnabled",on?"1":"0")}catch(e){} }
+  document.querySelectorAll("#settingsModal .audio-btn").forEach(b=>{
+    b.classList.toggle("active",b.dataset.audioChoice===choice);
+  });
+  if(on && window.EctoAudio) window.EctoAudio.sfx.click();
+}
+let savedAudio="off";
+try{ savedAudio=localStorage.getItem("ectoAudioEnabled")==="1"?"on":"off"; }catch(e){}
+applyAudioSetting(savedAudio);
+
 const settingsModalEl=$("settingsModal");
 function openSettings(){
   if(!settingsModalEl)return;
@@ -1516,15 +1538,20 @@ function resetSettings(){
     localStorage.removeItem("ectoDensity");
     localStorage.removeItem("ectoCrtEffects");
     localStorage.removeItem("ectoCustomColour");
+    localStorage.removeItem("ectoAudioEnabled");
   }catch(e){}
   applyTheme("green");
+  applyAudioSetting("off");
 }
 
 // Settings controls: one clean native controller.
 (function(){
   const modal=$("settingsModal");
   if(!modal)return;
-  modal.querySelectorAll(".theme-btn").forEach(btn=>{
+  modal.querySelectorAll(".audio-btn").forEach(btn=>{
+    btn.onclick=()=>applyAudioSetting(btn.dataset.audioChoice);
+  });
+  modal.querySelectorAll(".theme-btn:not(.audio-btn)").forEach(btn=>{
     btn.onclick=()=>applyTheme(btn.dataset.themeChoice);
   });
   const reset=$("resetSettings");
@@ -1800,6 +1827,152 @@ function deactivateSystem(){
   }
   setInterval(update,180);
   window.addEventListener('load',update);
+})();
+</script>
+
+<script id="ecto-audio-engine">
+(function(){
+  const STORAGE_KEY="ectoAudioEnabled";
+  let ctx=null,enabled=false;
+  try{ enabled=localStorage.getItem(STORAGE_KEY)==="1"; }catch(e){}
+  let humOsc=null,humOsc2=null,humGain=null;
+
+  function ensureCtx(){
+    if(!ctx){
+      try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+    }
+    if(ctx && ctx.state==="suspended") ctx.resume().catch(()=>{});
+    return ctx;
+  }
+
+  function setEnabled(v){
+    enabled=!!v;
+    try{ localStorage.setItem(STORAGE_KEY, enabled?"1":"0"); }catch(e){}
+    if(enabled) ensureCtx(); else stopHum();
+  }
+  function isEnabled(){ return enabled; }
+
+  function tone(freq,duration,opts){
+    opts=opts||{};
+    if(!enabled) return;
+    const ac=ensureCtx(); if(!ac) return;
+    const type=opts.type||"sine",gain=opts.gain!=null?opts.gain:0.07,
+      attack=opts.attack!=null?opts.attack:0.005,release=opts.release!=null?opts.release:0.05,
+      delay=opts.delay||0,freqEnd=opts.freqEnd!=null?opts.freqEnd:null;
+    const t0=ac.currentTime+delay;
+    const osc=ac.createOscillator(),g=ac.createGain();
+    osc.type=type;
+    osc.frequency.setValueAtTime(freq,t0);
+    if(freqEnd!=null) osc.frequency.linearRampToValueAtTime(freqEnd,t0+duration);
+    g.gain.setValueAtTime(0,t0);
+    g.gain.linearRampToValueAtTime(gain,t0+attack);
+    g.gain.linearRampToValueAtTime(0,t0+duration+release);
+    osc.connect(g); g.connect(ac.destination);
+    osc.start(t0); osc.stop(t0+duration+release+0.02);
+  }
+
+  function noiseBurst(duration,opts){
+    opts=opts||{};
+    if(!enabled) return;
+    const ac=ensureCtx(); if(!ac) return;
+    const gain=opts.gain!=null?opts.gain:0.04,delay=opts.delay||0;
+    const t0=ac.currentTime+delay;
+    const size=Math.max(1,Math.floor(ac.sampleRate*duration));
+    const buffer=ac.createBuffer(1,size,ac.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<size;i++) data[i]=(Math.random()*2-1)*(1-i/size);
+    const src=ac.createBufferSource(); src.buffer=buffer;
+    const g=ac.createGain();
+    g.gain.setValueAtTime(gain,t0);
+    g.gain.linearRampToValueAtTime(0,t0+duration);
+    src.connect(g); g.connect(ac.destination);
+    src.start(t0);
+  }
+
+  const sfx={
+    click(){ tone(720,0.03,{type:"square",gain:0.045,attack:0.002,release:0.02}); },
+    bootBlip(){ tone(1180+Math.random()*140,0.045,{type:"square",gain:0.032,release:0.03}); },
+    bootComplete(){ [880,1108,1318].forEach((f,i)=>tone(f,0.14,{type:"triangle",gain:0.07,delay:i*0.09,release:0.08})); },
+    powerUp(){ tone(160,0.5,{type:"sawtooth",gain:0.05,freqEnd:520,release:0.12}); },
+    powerDown(){ tone(520,0.45,{type:"sawtooth",gain:0.05,freqEnd:120,release:0.15}); },
+    selfTestScan(){ [0,1,2,3].forEach(i=>tone(660+i*70,0.06,{type:"square",gain:0.04,delay:i*0.11,release:0.03})); },
+    selfTestPass(){ [660,880].forEach((f,i)=>tone(f,0.12,{type:"triangle",gain:0.06,delay:i*0.1,release:0.06})); },
+    fault(){ [0,1].forEach(i=>tone(340,0.16,{type:"square",gain:0.07,delay:i*0.22,release:0.04})); noiseBurst(0.08,{gain:0.03}); },
+    cancelFault(){ tone(300,0.3,{type:"triangle",gain:0.05,freqEnd:180,release:0.1}); }
+  };
+
+  function startHum(){
+    if(!enabled || humOsc) return;
+    const ac=ensureCtx(); if(!ac) return;
+    humOsc=ac.createOscillator(); humOsc2=ac.createOscillator(); humGain=ac.createGain();
+    humOsc.type="sine"; humOsc.frequency.value=68;
+    humOsc2.type="sine"; humOsc2.frequency.value=102;
+    humGain.gain.value=0;
+    humOsc.connect(humGain); humOsc2.connect(humGain); humGain.connect(ac.destination);
+    humOsc.start(); humOsc2.start();
+    humGain.gain.linearRampToValueAtTime(0.018, ac.currentTime+0.6);
+  }
+  function stopHum(){
+    if(!humOsc) return;
+    const ac=ctx, o1=humOsc, o2=humOsc2, g=humGain;
+    if(ac && g) g.gain.linearRampToValueAtTime(0, ac.currentTime+0.4);
+    setTimeout(()=>{ try{o1.stop();o2.stop();}catch(e){} },500);
+    humOsc=null; humOsc2=null; humGain=null;
+  }
+
+  window.EctoAudio={isEnabled,setEnabled,sfx,startHum,stopHum};
+})();
+</script>
+
+<script id="ecto-audio-hooks">
+(function(){
+  function ready(fn){ if(document.readyState!=="loading") fn(); else document.addEventListener("DOMContentLoaded",fn); }
+  ready(function(){
+    const A=window.EctoAudio; if(!A) return;
+
+    document.addEventListener("click",function(e){
+      const btn=e.target.closest("button");
+      if(!btn || btn.disabled) return;
+      const id=btn.id||"";
+      if(/CancelFault$/i.test(id)){ A.sfx.cancelFault(); }
+      else if(/Fault$/i.test(id)){ A.sfx.fault(); }
+      else if(/SelfTest$/i.test(id)){ A.sfx.selfTestScan(); setTimeout(()=>A.sfx.selfTestPass(),480); }
+      else if(id==="connect"||/Connect$/.test(id)||id==="trapDeploy"){ A.sfx.powerUp(); }
+      else if(id==="disconnect"||/Disconnect$/.test(id)||id==="trapReset"){ A.sfx.powerDown(); }
+      else { A.sfx.click(); }
+    },true);
+
+    const bootlog=document.getElementById("bootlog");
+    if(bootlog){
+      new MutationObserver(muts=>{ muts.forEach(m=>{ if(m.addedNodes.length) A.sfx.bootBlip(); }); })
+        .observe(bootlog,{childList:true});
+    }
+    const bootstatus=document.getElementById("bootstatus");
+    if(bootstatus){
+      new MutationObserver(()=>{ if(bootstatus.classList.contains("boot-complete")) A.sfx.bootComplete(); })
+        .observe(bootstatus,{attributes:true,attributeFilter:["class"]});
+    }
+
+    function anyConnected(){
+      try{
+        return !!(
+          (typeof connected!=="undefined"&&connected)||
+          (typeof wandConnected!=="undefined"&&wandConnected)||
+          (typeof pkeConnected!=="undefined"&&pkeConnected)||
+          (typeof trapDeployed!=="undefined"&&trapDeployed)||
+          (typeof gogglesConnected!=="undefined"&&gogglesConnected)||
+          (typeof gigaConnected!=="undefined"&&gigaConnected)
+        );
+      }catch(e){ return false; }
+    }
+    let humOn=false;
+    setInterval(()=>{
+      if(!A.isEnabled()){ if(humOn){A.stopHum();humOn=false;} return; }
+      const on=anyConnected();
+      if(on && !humOn){ A.startHum(); humOn=true; }
+      else if(!on && humOn){ A.stopHum(); humOn=false; }
+    },400);
+  });
 })();
 </script>
 
