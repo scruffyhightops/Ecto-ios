@@ -88,11 +88,7 @@ button:disabled{opacity:.38!important;filter:saturate(.45)!important;cursor:not-
 .diagnostic-modal{position:fixed;inset:10px;z-index:2000;overflow:auto;margin:0!important;background:var(--bg);box-shadow:0 0 35px rgba(0,0,0,.65);max-width:none}
 .modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .modal-close{min-height:38px!important;padding:7px 10px!important;font-size:8px!important}
-.settings-modal{position:fixed;inset:10px;z-index:3000;pointer-events:auto;overflow:auto;margin:0;background:var(--bg);border:1px solid var(--line);padding:12px;box-shadow:0 0 35px rgba(0,0,0,.65)}
-.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.theme-btn.active{background:var(--line);color:var(--bg);font-weight:bold}
 .deactivate-btn{border-color:var(--warn);color:var(--warn)}
-@media(max-width:430px){.diagnostic-modal,.settings-modal{inset:6px}.header-actions button{font-size:5.5px;padding:5px 5px;min-height:28px}.header-actions{gap:3px}.header-actions .status{font-size:6px;padding:5px 5px}}
 body[data-theme="amber"]{--bg:#090602;--deep:#120b03;--panel:#1a0e03;--line:#ffb000;--text:#ffe3a1;--dim:#b68a45}
 body[data-theme="c64"]{--bg:#03030b;--deep:#07071a;--panel:#0b0b24;--line:#6f7cff;--text:#b9c2ff;--dim:#7279b5}
 body[data-theme="crt"]{--bg:#050500;--deep:#0b0b00;--panel:#121200;--line:#d7d24a;--text:#f0ed9a;--dim:#aaa74f}
@@ -137,7 +133,6 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .menu{gap:5px!important}
   .menu button{min-height:43px!important;padding:7px 5px!important;font-size:7px!important}
   .console-spacer{display:block!important;flex:1!important;min-height:0!important}
-  .diagnostic-modal,.settings-modal{inset:5px!important;overflow:hidden!important;padding:7px!important}
   .modal-head{margin-bottom:5px!important}
   .modal-close{min-height:30px!important;padding:5px 7px!important;font-size:6px!important}
   .diagnostic-modal .section{margin-top:5px!important;padding:6px!important}
@@ -154,10 +149,6 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .diagnostic-modal .note{font-size:6px!important;margin:4px 0 0!important}
   .diagnostic-modal .event-log{max-height:52px!important;font-size:7px!important;line-height:1.35!important;padding:5px!important}
   .diagnostic-modal .event-line{font-size:7px!important}
-  .settings-modal{padding:8px!important}
-  .settings-modal .section{margin-top:6px!important;padding:7px!important}
-  .theme-grid{gap:5px!important}
-  .theme-grid button{min-height:34px!important;padding:5px!important;font-size:6px!important}
 }
 </style>
 
@@ -253,15 +244,10 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
   .field-control-panel .precheck-btn{min-height:30px!important;margin-top:5px!important}
 }
 /* Keep modal close controls clear of the header: use a dedicated footer close action. */
-#settingsModal .modal-head,#precheckModal .modal-head{margin-bottom:8px!important}
-#settingsModal .modal-close,#precheckModal .modal-close{position:static!important;z-index:auto!important}
-#settingsModal,#precheckModal{z-index:100000!important}
 </style>
 
 <style id="v5-3-3-modal-close-fix">
 @media(max-width:430px){
-  #settingsModal .modal-head,#precheckModal .modal-head{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}
-  #settingsModal .modal-head .modal-close,#precheckModal .modal-head .modal-close{width:100%!important;min-height:34px!important}
 }
 </style>
 
@@ -406,12 +392,9 @@ body.inactive>*:not(.activate-screen){visibility:hidden}
 /* v5.3.5 — modal/header separation */
 .header{position:relative;z-index:20!important}
 .header-actions{position:relative;z-index:21!important}
-.diagnostic-modal,.settings-modal{z-index:200000!important}
 body.modal-open .header-actions{pointer-events:none!important}
 body.modal-open .header-actions button,
 body.modal-open .header-actions .status{visibility:hidden!important}
-#precheckModal,#settingsModal{pointer-events:auto!important}
-#precheckModal .modal-close,#settingsModal .modal-close{
   position:relative!important;
   z-index:200002!important;
   pointer-events:auto!important;
@@ -480,19 +463,15 @@ body.modal-open .header-actions .status{visibility:hidden!important}
 
 <style id="v5-4-settings-iphone">
 /* v5.4 — Settings menu iPhone layout */
-.settings-modal{
   box-sizing:border-box;
   max-height:calc(100dvh - 20px);
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
 }
-.settings-modal .modal-head{
   flex:0 0 auto;
 }
-.settings-modal .theme-grid{
   width:100%;
 }
-.settings-modal .theme-btn{
   width:100%;
   min-width:0;
   min-height:40px;
@@ -501,105 +480,70 @@ body.modal-open .header-actions .status{visibility:hidden!important}
   white-space:normal;
   overflow-wrap:anywhere;
 }
-.settings-modal .section{
   width:100%;
   box-sizing:border-box;
 }
-.settings-modal #resetSettings{
   width:100%;
   min-height:40px;
 }
 @media(max-width:430px){
-  .settings-modal{
     inset:6px!important;
     padding:8px!important;
     max-height:calc(100dvh - 12px)!important;
     border-radius:0;
   }
-  .settings-modal .modal-head{
     display:grid!important;
     grid-template-columns:1fr!important;
     gap:6px!important;
     margin-bottom:8px!important;
   }
-  .settings-modal .modal-head .section-title{
     font-size:8px!important;
     line-height:1.35!important;
     overflow-wrap:anywhere;
   }
-  .settings-modal .modal-close{
     width:100%!important;
     min-height:36px!important;
     font-size:7px!important;
   }
-  .settings-modal > .section-title{
     font-size:7px!important;
     margin-bottom:5px!important;
   }
-  .settings-modal .theme-grid{
     grid-template-columns:1fr 1fr!important;
     gap:5px!important;
   }
-  .settings-modal .theme-btn{
     min-height:42px!important;
     padding:6px 4px!important;
     font-size:6px!important;
     letter-spacing:.03em;
   }
-  .settings-modal .section{
     margin-top:8px!important;
     padding:7px!important;
   }
-  .settings-modal .section-title{
     font-size:7px!important;
   }
-  .settings-modal #resetSettings{
     min-height:38px!important;
     font-size:6.5px!important;
   }
 }
 @media(max-width:350px){
-  .settings-modal .theme-grid{grid-template-columns:1fr!important}
-  .settings-modal .theme-btn{min-height:36px!important}
 }
 </style>
 
 
 <style id="v5-5-settings-build">
-.settings-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;padding:7px 0;border-top:1px solid rgba(57,169,67,.22)}
-.settings-row:first-of-type{border-top:0;margin-top:2px}
-.settings-label{font-size:7px;letter-spacing:.08em}
-.settings-note{font-size:5.5px;color:var(--dim);margin-top:3px;line-height:1.35}
-.settings-action,.settings-choice{min-height:34px!important;padding:5px 8px!important;font-size:6px!important;white-space:nowrap}
-.settings-toggle{display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:0 0 auto}
-.settings-choice.active{background:var(--line);color:var(--bg);font-weight:bold}
-.settings-info{border:1px solid var(--line);padding:7px 8px;margin-top:6px}
-.settings-info div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:6px}
-.settings-info span{color:var(--dim)}
-.settings-info strong{font-weight:bold}
 body.crt-effects::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:199999;background:repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.08) 3px);opacity:.7}
 body.interface-compact .main-console>.section{padding:6px!important;margin-top:4px!important}
 body.interface-compact .menu button{min-height:39px!important;padding:5px 4px!important}
 body.interface-compact .header{padding:6px!important}
 @media(max-width:430px){
- .settings-row{align-items:flex-start;gap:6px;padding:8px 0}
- .settings-label{font-size:6.5px}
- .settings-note{font-size:5px}
- .settings-action,.settings-choice{min-height:34px!important;font-size:5.8px!important;padding:5px 6px!important}
- .settings-toggle{width:118px}
- .settings-info div{font-size:5.8px}
 }
 @media(max-width:350px){
- .settings-row{display:block}
- .settings-action,.settings-toggle{width:100%;margin-top:6px}
- .settings-toggle{grid-template-columns:1fr 1fr}
 }
 </style>
 <style id="v5-4-system-control-safety">
 /* Keep the two top-level system controls physically clickable on compact touch layouts. */
 .header{position:relative!important;z-index:9998!important}
 .header-actions{position:relative!important;z-index:9999!important;pointer-events:auto!important}
-#consoleSettingsBtn,#consoleDeactivateBtn{position:relative!important;z-index:10000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
 </style>
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
@@ -625,7 +569,7 @@ body.interface-compact .header{padding:6px!important}
   <div class="header">
     <div class="header-main">
       <div><h1>ECTO OS // FIELD EQUIPMENT</h1><p>LOCAL EQUIPMENT MONITORING TERMINAL</p></div>
-      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div><button id="consoleSettingsBtn">SETTINGS</button><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
+      <div class="header-actions"><div class="status" id="topstatus">SYSTEM READY</div><button id="consoleDeactivateBtn" class="deactivate-btn">DEACTIVATE</button></div>
     </div>
   </div>
 
@@ -903,26 +847,6 @@ body.interface-compact .header{padding:6px!important}
   </div>
 </div>
 
-<div id="settingsModal" class="settings-modal hidden" aria-hidden="true">
-  <div class="modal-head">
-    <div class="section-title" style="margin:0">ECTO SETTINGS // SYSTEM // V1.9.1</div>
-    <button type="button" class="modal-close" id="settingsClose">CLOSE</button>
-  </div>
-
-  <div class="section">
-    <div class="section-title">COLOUR THEME</div>
-    <div class="theme-grid">
-      <button type="button" class="theme-btn" data-theme-choice="green">ECTO GREEN</button>
-      <button type="button" class="theme-btn" data-theme-choice="amber">AMBER TERMINAL</button>
-      <button type="button" class="theme-btn" data-theme-choice="c64">C64 BLUE</button>
-      <button type="button" class="theme-btn" data-theme-choice="crt">CLASSIC CRT</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">SYSTEM</div>
-    <button type="button" id="resetSettings">RESET SETTINGS</button>
-  </div>
 </div>
 </section>
 
@@ -1441,57 +1365,6 @@ $("otherAction").onclick=()=>{ov=clamp(ov+12);$("otherStatus").textContent=activ
 $("otherReset").onclick=()=>{ov=35+Math.random()*30;$("otherStatus").textContent="READY";renderOther()};
 renderWand();renderTrap();renderPke();renderPack();configureNewDevice("goggles");syncPackControls();syncPkeControls();updateConnectionOverview();updateSystemSummary();
 
-const VALID_THEMES=["green","amber","c64","crt"];
-function applyTheme(theme){
-  if(!VALID_THEMES.includes(theme)) theme="green";
-  document.body.dataset.theme=theme==="green"?"":theme;
-  try{localStorage.setItem("ectoTheme",theme)}catch(e){}
-  document.querySelectorAll("#settingsModal .theme-btn").forEach(b=>{
-    b.classList.toggle("active",b.dataset.themeChoice===theme);
-  });
-}
-let savedTheme="green";
-try{
-  savedTheme=localStorage.getItem("ectoTheme")||"green";
-  if(!VALID_THEMES.includes(savedTheme)) savedTheme="green";
-}catch(e){}
-applyTheme(savedTheme);
-
-const settingsModalEl=$("settingsModal");
-function openSettings(){
-  if(!settingsModalEl)return;
-  settingsModalEl.classList.remove("hidden");
-  settingsModalEl.style.display="block";
-  settingsModalEl.setAttribute("aria-hidden","false");
-  document.body.classList.add("modal-open");
-}
-function closeSettings(){
-  if(!settingsModalEl)return;
-  settingsModalEl.classList.add("hidden");
-  settingsModalEl.style.display="none";
-  settingsModalEl.setAttribute("aria-hidden","true");
-  document.body.classList.remove("modal-open");
-}
-function resetSettings(){
-  try{
-    localStorage.removeItem("ectoTheme");
-    localStorage.removeItem("ectoDensity");
-    localStorage.removeItem("ectoCrtEffects");
-    localStorage.removeItem("ectoCustomColour");
-  }catch(e){}
-  applyTheme("green");
-}
-
-function deactivateSystem(){
-  try{sessionStorage.removeItem("ectoActivated")}catch(e){}
-  closeSettings();
-  document.querySelectorAll(".diagnostic-modal").forEach(x=>x.classList.add("hidden"));
-  const app=$("app"),bootEl=$("boot"),screen=$("activateScreen");
-  if(app)app.classList.add("hidden");
-  if(bootEl)bootEl.classList.add("hidden");
-  if(screen)screen.style.display="flex";
-  document.body.classList.add("inactive");
-}
 </script>
 <script>
 (function(){
@@ -1743,137 +1616,26 @@ function deactivateSystem(){
 })();
 </script>
 
+
+
 <script>
 /*
-  ECTO OS // SYSTEM CONTROLLER
-  Single owner for Activation, Settings and Deactivate.
-  No click/pointerup/touchend duplicates.
+  ECTO OS // DEACTIVATE ONLY CONTROLLER
+  Single action: clear activation state and reload to the standby screen.
+  Capture-phase delegation avoids clashes with other UI handlers.
 */
 (function(){
   "use strict";
-
-  const $id = id => document.getElementById(id);
-
-  const activateScreen = $id("activateScreen");
-  const activateBtn = $id("activateBtn");
-  const settingsBtn = $id("consoleSettingsBtn");
-  const deactivateBtn = $id("consoleDeactivateBtn");
-  const settingsClose = $id("settingsClose");
-  const settingsModal = $id("settingsModal");
-  const resetBtn = $id("resetSettings");
-
-  function activateSystem(e){
-    if(e) e.preventDefault();
-    try{ sessionStorage.setItem("ectoActivated","1"); }catch(err){}
-    document.body.classList.remove("inactive");
-    if(activateScreen){
-      activateScreen.style.display="none";
-      activateScreen.style.zIndex="";
-    }
-  }
-
-  function deactivateSystemClean(e){
-    if(e) e.preventDefault();
-
+  document.addEventListener("click", function(e){
+    var btn = e.target && e.target.closest ? e.target.closest("#consoleDeactivateBtn") : null;
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
     try{ sessionStorage.removeItem("ectoActivated"); }catch(err){}
-
-    if(typeof closeSettings==="function") closeSettings();
-
-    document.querySelectorAll(".diagnostic-modal").forEach(function(modal){
-      modal.classList.add("hidden");
-      modal.style.display="none";
-    });
-
-    const app=$id("app");
-    const boot=$id("boot");
-
-    if(app) app.classList.add("hidden");
-    if(boot) boot.classList.add("hidden");
-
-    document.body.classList.add("inactive");
-
-    if(activateScreen){
-      activateScreen.style.display="flex";
-      activateScreen.style.zIndex="999999";
-    }
-  }
-
-  function openSettingsClean(e){
-    if(e) e.preventDefault();
-    if(typeof openSettings==="function"){
-      openSettings();
-      return;
-    }
-    if(settingsModal){
-      settingsModal.classList.remove("hidden");
-      settingsModal.style.display="block";
-      settingsModal.setAttribute("aria-hidden","false");
-      document.body.classList.add("modal-open");
-    }
-  }
-
-  function closeSettingsClean(e){
-    if(e) e.preventDefault();
-    if(typeof closeSettings==="function"){
-      closeSettings();
-      return;
-    }
-    if(settingsModal){
-      settingsModal.classList.add("hidden");
-      settingsModal.style.display="none";
-      settingsModal.setAttribute("aria-hidden","true");
-      document.body.classList.remove("modal-open");
-    }
-  }
-
-  function resetSettingsClean(e){
-    if(e) e.preventDefault();
-    if(typeof resetSettings==="function"){
-      resetSettings();
-      return;
-    }
-    try{
-      localStorage.removeItem("ectoTheme");
-      localStorage.removeItem("ectoCustomColour");
-    }catch(err){}
-    if(typeof applyTheme==="function") applyTheme("green");
-  }
-
-  if(activateBtn) activateBtn.onclick=activateSystem;
-  if(settingsBtn){
-    settingsBtn.type="button";
-    settingsBtn.onclick=openSettingsClean;
-  }
-  if(deactivateBtn){
-    deactivateBtn.type="button";
-    deactivateBtn.onclick=deactivateSystemClean;
-  }
-  if(settingsClose) settingsClose.onclick=closeSettingsClean;
-
-  document.querySelectorAll("#settingsModal .theme-btn").forEach(function(btn){
-    btn.onclick=function(e){
-      if(e) e.preventDefault();
-      if(typeof applyTheme==="function") applyTheme(btn.dataset.themeChoice);
-    };
-  });
-
-  if(resetBtn) resetBtn.onclick=resetSettingsClean;
-
-  try{
-    if(sessionStorage.getItem("ectoActivated")==="1"){
-      document.body.classList.remove("inactive");
-      if(activateScreen) activateScreen.style.display="none";
-    }else{
-      document.body.classList.add("inactive");
-      if(activateScreen) activateScreen.style.display="flex";
-    }
-  }catch(err){
-    document.body.classList.add("inactive");
-    if(activateScreen) activateScreen.style.display="flex";
-  }
+    window.location.reload();
+  }, true);
 })();
 </script>
-
 </body>
 <!-- v1.9: larger equipment tiles + robust bottom system controls -->
 </html>
