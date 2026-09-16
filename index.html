@@ -601,6 +601,9 @@ body.interface-compact .header{padding:6px!important}
 .header-actions{position:relative!important;z-index:9999!important;pointer-events:auto!important}
 #consoleSettingsBtn,#consoleDeactivateBtn{position:relative!important;z-index:10000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
 </style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#000000">
 </head>
 <body class="inactive"><div id="activateScreen" class="activate-screen"><div class="activate-card"><div class="activate-mark">ECTO OS // FIELD EQUIPMENT TERMINAL</div><div class="activate-title">SYSTEM STANDBY</div><div class="activate-sub">EQUIPMENT MONITORING TERMINAL IS INACTIVE.<br>ACTIVATE TO BEGIN BOOT SEQUENCE.</div><button id="activateBtn" class="activate-btn">ACTIVATE SYSTEM</button></div></div>
 <script>
@@ -2014,6 +2017,17 @@ function deactivateSystem(){
     }
   };
 })();
+</script>
+
+
+<script id="ecto-offline-registration">
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(err){
+      console.warn('ECTO OS offline cache registration failed', err);
+    });
+  });
+}
 </script>
 
 </body>
