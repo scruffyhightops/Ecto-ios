@@ -1896,8 +1896,15 @@ function deactivateSystem(){
     click(){ tone(720,0.03,{type:"square",gain:0.045,attack:0.002,release:0.02}); },
     bootBlip(){ tone(1180+Math.random()*140,0.045,{type:"square",gain:0.032,release:0.03}); },
     bootComplete(){ [880,1108,1318].forEach((f,i)=>tone(f,0.14,{type:"triangle",gain:0.07,delay:i*0.09,release:0.08})); },
-    powerUp(){ tone(160,0.5,{type:"sawtooth",gain:0.05,freqEnd:520,release:0.12}); },
-    powerDown(){ tone(520,0.45,{type:"sawtooth",gain:0.05,freqEnd:120,release:0.15}); },
+    // Equipment connection sounds: short two-stage sci-fi communicator-style chirps.
+    communicatorConnect(){
+      tone(1180,0.075,{type:"sine",gain:0.055,attack:0.004,release:0.025,freqEnd:1760});
+      tone(1760,0.095,{type:"sine",gain:0.05,attack:0.003,release:0.035,freqEnd:1320,delay:0.075});
+    },
+    communicatorDisconnect(){
+      tone(1760,0.075,{type:"sine",gain:0.055,attack:0.004,release:0.025,freqEnd:1240});
+      tone(1240,0.095,{type:"sine",gain:0.05,attack:0.003,release:0.035,freqEnd:880,delay:0.075});
+    },
     selfTestScan(){ [0,1,2,3].forEach(i=>tone(660+i*70,0.06,{type:"square",gain:0.04,delay:i*0.11,release:0.03})); },
     selfTestPass(){ [660,880].forEach((f,i)=>tone(f,0.12,{type:"triangle",gain:0.06,delay:i*0.1,release:0.06})); },
     fault(){ [0,1].forEach(i=>tone(340,0.16,{type:"square",gain:0.07,delay:i*0.22,release:0.04})); noiseBurst(0.08,{gain:0.03}); },
@@ -1940,8 +1947,8 @@ function deactivateSystem(){
       if(/CancelFault$/i.test(id)){ A.sfx.cancelFault(); }
       else if(/Fault$/i.test(id)){ A.sfx.fault(); }
       else if(/SelfTest$/i.test(id)){ A.sfx.selfTestScan(); setTimeout(()=>A.sfx.selfTestPass(),480); }
-      else if(id==="connect"||/Connect$/.test(id)||id==="trapDeploy"){ A.sfx.powerUp(); }
-      else if(id==="disconnect"||/Disconnect$/.test(id)||id==="trapReset"){ A.sfx.powerDown(); }
+      else if(id==="connect"||/Connect$/.test(id)||id==="trapDeploy"){ A.sfx.communicatorConnect(); }
+      else if(id==="disconnect"||/Disconnect$/.test(id)||id==="trapReset"){ A.sfx.communicatorDisconnect(); }
       else { A.sfx.click(); }
     },true);
 
